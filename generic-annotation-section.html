@@ -57,7 +57,7 @@ Annotation section used in function, medical, and expression views.
                         <h4 class="hidden-lg hidden-md annotation-category-title"> {{category.name}}</h4>
                     </div>
                     <div class="col-lg-11 col-md-10 col-sm-12 col-xs-12">
-                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" initial-count="10" rendered-item-count="{{trackItems}}">
+                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation">
                             <div class="row annotation-row">
                                 <div class="col-lg-10 col-md-10 col-sm-9 col-xs-9">
                                     <div class="annotation-title-container">
@@ -160,9 +160,6 @@ Annotation section used in function, medical, and expression views.
         Polymer({
             is: 'generic-annotation-section',
             properties: {
-                trackItems: {
-                    observer: "_logTrackItems"
-                },
                 nxConfig: {
                     type: Object,
                     value: {}
@@ -362,9 +359,6 @@ Annotation section used in function, medical, and expression views.
             },
             _countItems: function (obj) {
                 return obj.length;
-            },
-            _logTrackItems: function (itms) {
-                console.log(itms);
             },
             _toggle: function (mouseEvent) {
                 var srcElementId = mouseEvent.srcElement.id || mouseEvent.srcElement.parentNode.id;
