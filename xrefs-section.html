@@ -1,0 +1,301 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="shared-styles.html">
+<script src="../nextprot-js/dist/nextprot.bundle.js"></script>
+<!--
+`xrefs-section`
+Exteranl links section present in function, medical, expression, interactions, sequence, proteomics and structures views.
+@demo demo/xref-section-demo.html
+-->
+<dom-module id="xrefs-section">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+    </style>
+    <div id="xrefs-header" class="category-header">
+      <h4 id="xrefs-title" class="category-title">Further external links</h4>
+      <paper-spinner-lite id="spinner" active></paper-spinner-lite>
+    </div>
+    <div class="category-main">
+      <template is="dom-repeat" items="{{_toArray(data)}}" as="category">
+      <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotations">
+      <div class="row">
+        <div class="col-lg-4 col-md-2 col-sm-12 col-xs-12">
+          <h4 class="hidden-sm hidden-xs annotation-category-title text-align-right"> {{annotations.name}}</h4>
+          <h4 class="hidden-lg hidden-md annotation-category-title text-align-left"> {{annotations.name}}</h4>
+        </div>
+        <div class="col-lg-8 col-md-10 col-sm-12 col-xs-12">
+            <template is="dom-repeat" items="{{annotations.value}}" as="annotation">
+              <div class="row annotation-row">
+                <div class="col-md-3 col-sm-3 col-xs-4 annotation-title-container">
+                  <p class="annotation-title">{{annotation.name}}</p>
+                </div>
+                <div class="col-md-9 col-sm-9 col-xs-8">
+                  <template is="dom-repeat" items="{{annotation.xrefs}}" as="xref">
+                  <div class="btn-group hidden-xs" role="group">
+                    <template is="dom-if" if="{{xref.prefix}}">
+                      <label class="btn btn-xs prefix-label">{{xref.prefix}}</label>
+                    </template>
+                    <a class="btn btn-xs selectable ext-link" href="{{xref.url}}" target="_blank">{{xref.accession}}</a>
+                    <template is="dom-if" if="{{xref.sufix}}">
+                      <label class="suffix-label">{{xref.suffix}}</label>
+                    </template>
+                  </div>
+                  <div class="row hidden-lg hidden-md hidden-sm">
+                    <div class="btn-group col-xs-12 no-padding" role="group">
+                      <template is="dom-if" if="{{xref.prefix}}">
+                        <label class="btn btn-xs prefix-label">{{xref.prefix}}</label>
+                      </template>
+                      <a class="btn btn-xs selectable ext-link" href="{{xref.url}}" target="_blank">{{xref.accession}}</a>
+                      <template is="dom-if" if="{{xref.sufix}}">
+                        <label class="suffix-label">{{xref.suffix}}</label>
+                      </template>
+                    </div>
+                  </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+        </div>
+      </div>
+      <template is="dom-if" if="{_checkIfLast(data,index)}}">
+        <hr class="bottom-line">
+      </template>
+      </template>
+      </template>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'xrefs-section',
+      properties: {
+        categories: {
+          type: Array
+        },
+        count: {
+          type: Number,
+          notify: true
+        }
+      },
+      ready: function(){
+        var nx = new Nextprot.Client("xref-section", "ndu");
+        var self=this;
+        var nxEntryName = nx.getEntryName();		
+        nx.getAnnotationsByCategory(nxEntryName, "xref")
+          .then(function (data) {
+            self.getXrefByView(Object.keys(data.xrefs).map(function(k) { return data.xrefs[k] }));
+            self.$.spinner.active = false;
+          }).catch(function (err) {
+            // catch any error that happened so far
+            console.log("Argh, broken: " + err.message);
+            console.log("Error at line : " + err.stack);
+            self.$.spinner.active = false;
+            self.count = 0;
+          });
+      },
+      getXrefByView: function(list) {
+        this.count = 0;
+        this.data = [];
+        var dataObject = {};
+        var self = this;
+        list.forEach(function (k) {
+          if (self.categories.indexOf(k.databaseName) >= 0) {
+            if (dataObject[k.databaseCategory]) dataObject[k.databaseCategory].push(k);
+            else dataObject[k.databaseCategory] = [k];
+          }
+        });
+        //sort data alphabetically
+        self.data = Object.keys(dataObject).map(function (key) {
+          var temp = {};
+          temp[key] = dataObject[key];
+          return temp
+        });
+
+        self.data.sort(this._sortAlpha);
+        this.data = this.data.map(function(t){
+          t[Object.keys(t)[0]] = self._filterExceptions(t[Object.keys(t)[0]]);
+          return t;
+        });
+        self.data.forEach(function(x){
+          var cat = x[Object.keys(x)[0]];
+          cat.forEach(function(x2){self.count+=1;})
+          cat.sort(function (a,b){
+            var dbA = a.name.toUpperCase();
+            var dbB = b.name.toUpperCase();
+            var prefA = a.xrefs[0].prefix.toUpperCase();
+            var prefB = b.xrefs[0].prefix.toUpperCase();
+            var accA = a.xrefs[0].accession.toUpperCase();
+            var accB = b.xrefs[0].accession.toUpperCase();
+            if (dbA < dbB) return -1;
+            else if (dbA > dbB) return 1;
+            else if (prefA < prefB) return -1;
+            else if (prefA > prefB) return 1;
+            else if (accA < accB) return -1;
+            else if (accA > accB) return 1;
+            else return 0;
+          })
+        })
+      },
+      _filterExceptions: function(typeList) {
+        var newTypeList = [];
+        for (elem in typeList){
+          if (typeList[elem].databaseName === "Ensembl"){
+            if (typeList[elem].accession.startsWith("ENST")){
+              if (typeList[elem].properties) {
+                var ensembl = {
+                  name: typeList[elem].databaseName,
+                  xrefs : [{
+                    accession: typeList[elem].accession,
+                    url : typeList[elem].resolvedUrl,
+                    prefix : "Transcript",
+                    suffix : ""
+                  }]
+                };
+                typeList[elem].properties.forEach(function(p){
+                  if (p.name === "nxmapped protein sequence ID") {
+                    var result = $.grep(typeList, function(e){ return e.accession == p.value; })[0];
+                    ensembl.xrefs.push({
+                      accession: result.accession,
+                      url : result.resolvedUrl,
+                      prefix : "Protein",
+                      suffix : ""
+                    });
+                  }
+                })
+                typeList[elem].properties.forEach(function(p){
+                  if (p.name === "nxmapped gene ID") {
+                    var result = $.grep(typeList, function(e){ return e.accession == p.value; })[0];
+                    ensembl.xrefs.push({
+                      accession: result.accession,
+                      url : result.resolvedUrl,
+                      prefix : "Gene",
+                      suffix : ""
+                    });
+                  }
+                })
+                newTypeList.push(ensembl);
+              }
+            }
+          }
+          else if (typeList[elem].databaseName === "EMBL"){ //TODO
+            if (typeList[elem].properties.length > 0) {
+              var molType = $.grep(typeList[elem].properties, function(e){ return e.name === "molecule type"; })[0];
+              var addInfos = $.grep(typeList[elem].properties, function(e){ return e.name === "status"})[0];
+              var suffix = addInfos ? status[addInfos.value] : "";
+              var embl = {
+                name: typeList[elem].databaseName,
+                xrefs : []
+              };
+              if (molType.value === "mRNA") {
+                embl.xrefs.push({
+                  accession: typeList[elem].accession,
+                  url : typeList[elem].resolvedUrl,
+                  prefix : "mRNA",
+                  suffix : ""
+                })
+                var translationID = $.grep(typeList[elem].properties, function(e){ return e.name === "protein sequence ID"; })[0].value;
+                var translation = $.grep(typeList, function(e){ return e.accession == translationID; })[0];
+                embl.xrefs.push({
+                  accession: translation.accession,
+                  url : translation.resolvedUrl,
+                  prefix : "Translation",
+                  suffix : suffix
+                })
+              }
+              else if (molType.value === "protein") {
+                var geneIDs = $.grep(typeList[elem].properties, function(e){ return e.name === "genomic sequence ID"; });
+                geneIDs.forEach(function(g){
+                  var gene = $.grep(typeList, function(e){ return e.accession == g.value; })[0];
+                  embl.xrefs.push({
+                    accession: gene.accession,
+                    url : gene.resolvedUrl,
+                    prefix : "Genomic DNA",
+                    suffix : ""
+                  })
+                })
+                embl.xrefs.push({
+                  accession: typeList[elem].accession,
+                  url : typeList[elem].resolvedUrl,
+                  prefix : "Translation",
+                  suffix : suffix
+                })
+              }
+              else if (molType.value === "Genomic_DNA" && addInfos.value) {
+                var geneIDs = $.grep(typeList[elem].properties, function(e){ return e.name === "genomic sequence ID"; });
+                embl.xrefs.push({
+                  accession: typeList[elem].accession,
+                  url : typeList[elem].resolvedUrl,
+                  prefix : "Genomic DNA",
+                  suffix : suffix
+                })
+              }
+              newTypeList.push(embl);
+            }
+          }
+          else if (typeList[elem].databaseName === "RefSeq"){ //TODO
+            if (typeList[elem].properties.length > 0) {
+              var nucleotideID = $.grep(typeList[elem].properties, function(e){ return e.name === "nucleotide sequence ID"; })[0].value;
+              var refseq = {
+                name: typeList[elem].databaseName,
+                xrefs : [{
+                  accession: typeList[elem].accession,
+                  url : typeList[elem].resolvedUrl,
+                  prefix : "Protein",
+                  suffix : ""
+                }]
+              };
+              var nucleotide = $.grep(typeList, function(e){ return e.accession == nucleotideID; })[0];
+              refseq.xrefs.push({
+                accession: nucleotide.accession,
+                url : nucleotide.resolvedUrl,
+                prefix : "Nucleotide sequence",
+                suffix : ""
+              });
+              newTypeList.push(refseq);
+            }
+          }
+          else {
+            var suffix = "";
+            if (typeList[elem].properties.length>0){
+              var addInfos = $.grep(typeList[elem].properties, function(e){ return e.name === "entry name" || e.name === "isoform ID" || e.name === "gene designation" || e.name === "taxonomic scope"; })[0];
+              suffix = addInfos ? addInfos.value : "";
+            }
+            newTypeList.push({
+              name: typeList[elem].databaseName,
+              xrefs : [{
+                accession: typeList[elem].accession,
+                url : typeList[elem].resolvedUrl,
+                prefix : "",
+                suffix : suffix
+              }]
+            })
+          }
+
+        }
+        return newTypeList;
+      },
+      _sortAlpha: function(a,b){
+        var textA = Object.keys(a)[0].toUpperCase();
+        var textB = Object.keys(b)[0].toUpperCase();
+        return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+      },
+      _toArray: function(obj) {
+        if (typeof obj === 'object') {
+          return Object.keys(obj).map(function(key) {
+            return {
+              name: key,
+              value: obj[key]
+            };
+          });
+        }
+        return null;
+      },
+      _checkIfLast: function(array,index){
+        if(array.length-1===index) return true;
+        return false;
+      },
+    });
+  </script>
+</dom-module>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>generic-annotation-section demo</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+
+    <link rel="import" href="../../iron-demo-helpers/demo-pages-shared-styles.html">
+    <link rel="import" href="../../iron-demo-helpers/demo-snippet.html">
+
+    <link rel="import" href="../generic-annotation-section.html">
+
+    <style is="custom-style" include="demo-pages-shared-styles">
+        .vertical-section-container {
+            max-width: 80%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="vertical-section-container centered">
+        <h3>generic-annotation-section with function annotations</h3>
+        <h4><span><label>Gold only</label><input type="checkbox" onchange="toggleGoldOnly()" style="margin-left: 20px;"></span></h4>
+        <demo-snippet>
+            <template>
+                <generic-annotation-section section="function" categories='[ "GENERAL-ANNOTATION" ]'></generic-annotation-section>
+            </template>
+        </demo-snippet>
+        <h3>generic-annotation-section with interaction annotations</h3>
+        <demo-snippet>
+            <template>
+                <generic-annotation-section section="interactions" categories='["INTERACTION-INFO", "ENZYME-REGULATION", "COFACTOR", "BINARY-INTERACTION"]' category-titles='{"subunit": "overview", "BinaryInteraction": "Binary Interactions"}'>
+                </generic-annotation-section>
+            </template>
+        </demo-snippet>
+    </div>
+    <script>
+        function toggleGoldOnly() {
+            var elements = document.querySelectorAll("generic-annotation-section");
+            for (var e in elements) {
+                var element = elements[e];
+                if (!element.goldOnly) {
+                    element.goldOnly = true;
+                } else {
+                    element.goldOnly = false;
+                }
+
+            }
+        }
+    </script>
+</body>
+
+</html>

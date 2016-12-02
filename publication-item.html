@@ -1,0 +1,167 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-collapse/iron-collapse.html">
+<link rel="import" href="../neon-animation/animations/fade-in-animation.html">
+<link rel="import" href="../neon-animation/animations/fade-out-animation.html">
+<link rel="import" href="../neon-animation/neon-animation-runner-behavior.html">
+<link rel="import" href="shared-styles.html">
+<!--
+`publication-item`
+Publication item demo
+
+##### Example of full publication
+
+      <publication-item></publication-item>
+
+##### Example of summary
+
+      <publication-item summary></publication-item>
+
+##### Example of only show abstract
+
+      <publication-item show-abstract></publication-item>
+
+@demo demo/publication-item-demo.html
+-->
+<dom-module id="publication-item">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+      iron-collapse {
+        margin-top: 5px;
+      }
+      p {
+        margin: 0 0 5px;
+      }
+      button[pushed] .pubDisplayStatus:before {
+        content:"Hide";
+        display:inline-block;
+        width:29px;
+      }
+      button .pubDisplayStatus:before {
+        content:"Show";
+      }
+      .publication-container {
+        padding-left: 15px;
+        margin-top: 5px;
+        margin-bottom: 15px;
+        border-left:1px solid darkgray;
+      }
+      #abstractHeader {
+        color: #666;
+        padding: 5px 0;
+      }
+      #collapseAbstract {
+        text-align: justify;
+      }
+    </style>
+      <template is="dom-if" if="{{data}}">
+        <template is="dom-if" if="{{data.title}}">
+          <p><a href="/publication/{{data.publicationId}}"  target='_parent'>{{data.title}}</a></p>
+        </template>
+        <template is="dom-if" if="{{!summary}}">
+          <p><span class="hyperlink-blue">
+            <template is="dom-repeat" items="{{data.authors}}" as="author">
+              <a href="/publications/search?query=author:{{author.lastName}} {{author.foreName}}">
+                {{author.lastName}} {{_formatInitals(author.initials)}}</a><template is="dom-if" if="{{!_checkIfLast(data.authors,index)}}">,</template>
+            </template>
+          </span></p>
+          <p>{{data.journal}} {{data.journalResourceLocator.abbrev}}, <strong>{{data.volume}}</strong>, {{data.firstPage}}
+            <template is="dom-if" if="{{data.lastPage}}">- {{data.lastPage}}</template> ({{data.publicationYear}})
+            <template is="dom-repeat" items="{{data.dbXrefs}}" as="xref">[{{_formatXrefLabel(xref.databaseName)}}:
+              <a href="{{xref.resolvedUrl}}" class="ext-link" target='_blank'>{{xref.accession}}</a>]
+            </template>
+          </p>
+        </template>
+        <template is="dom-if" if="{{summary}}">
+          {{data.authors.0.lastName}} {{data.authors.0.initials}}. <template is="dom-if" if="{{data.authors.1}}">
+          <i>et al.</i></template>, {{data.journal}} {{data.journalResourceLocator.medAbbrev}}, <strong>{{data.volume}}</strong>, {{data.firstPage}}
+          <template is="dom-if" if="{{data.lastPage}}">- {{data.lastPage}}</template> ({{data.publicationYear}})
+        </template>
+      </template>
+      <template is="dom-if" if="{{data.abstractText}}">
+        <button id="collapseButton" class="btn btn-primary btn-xs" type="button" on-tap="_toggleAbstract">
+          <span class="pubDisplayStatus"> </span>abstract
+        </button>
+      </template>
+      <iron-collapse id="collapseAbstract" opened="{{showAbstract}}">
+        <template is="dom-if" if="{{data.abstractText}}">
+          <div id="abstractHeader" hidden>Abstract</div>
+        </template>
+        {{data.abstractText}}
+      </iron-collapse>
+      <template is="dom-if" if="{{!data.abstractText}}">
+        No Abstract available
+      </template>
+    </template>
+  </template>
+  <script>
+    Polymer({
+      is: 'publication-item',
+      behaviors: [Polymer.NeonAnimationRunnerBehavior],
+      properties: {
+        data: {
+          type: Object
+        },
+        showAbstract: {
+          type: Boolean,
+          value: false
+        },
+        summary: {
+          type: Boolean,
+          value: false
+        },
+        animationConfig: {
+          value: function(){
+            return {
+              "showAbstract": {
+                name: "fade-in-animation",
+                node: this.$.collapseAbstract,
+                timing: {
+                  duration: 1200
+                }
+              },
+              "hideAbstract": {
+                name: "fade-out-animation",
+                node: this.$.collapseAbstract,
+                timing: {
+                  duration: 200
+                }
+              }
+            }
+          }
+        }
+      },
+      attached: function () {
+        if (this.showAbstract) {
+          this.async(function(){
+            if(this.$$("#abstractHeader")) this.$$("#abstractHeader").removeAttribute("hidden");
+            if(this.$$("#collapseButton")) this.$$("#collapseButton").hidden = true;
+          },1);
+        }
+      },
+      _toggleAbstract: function(){
+        this.$$("#collapseAbstract").opened ?
+          this.playAnimation("hideAbstract") : this.playAnimation("showAbstract");
+        this.$$("#collapseAbstract").toggle();
+        this._toggleButton();
+      },
+      _toggleButton: function(){
+        this.$$("#collapseAbstract").opened ?
+          this.$$("#collapseButton").setAttribute("pushed", null) :
+          this.$$("#collapseButton").removeAttribute("pushed");
+      },
+      _formatXrefLabel: function(name){
+        return name.replace("DOI", "Full text");
+      },
+      _formatInitals: function(name){
+        return (name.split('').join('.') + '.').replace("-.", "");
+      },
+      _checkIfLast: function(array,index){
+        if(array.length-1===index) return true;
+        return false;
+      }
+    });
+  </script>
+</dom-module>

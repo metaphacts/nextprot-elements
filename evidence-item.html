@@ -1,0 +1,98 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="quality-label.html">
+<link rel="import" href="publication-item.html">
+<link rel="import" href="shared-styles.html">
+
+<!--
+`evidence-item`
+Block element representing an evidence record.
+
+##### Example
+    <evidence-item />
+@demo demo/evidence-item-demo.html
+-->
+
+<dom-module id="evidence-item">
+    <template>
+        <style include="shared-styles">
+            :host {
+                display: block;
+                padding-left: 10px;
+            }
+            .evidence-container {
+                margin: 0 0 15px 0;
+            }
+            .evidence-arrow {
+                transform:rotate(180deg);
+                display:inline-block;
+                font-weight: 900;
+            }
+            .evidence-code-name {
+                background-color:#7cba0f;
+                color:white;
+                border-radius: 2px;
+                margin-left: 5px;
+            }
+            .evidence-source {
+                background-color: #dedede;
+                color: #999;
+                border-radius: 2px;
+            }
+            .evidence-accession {
+                margin-top: 5px;
+                padding: 0px 17px;
+            }
+            .evidence-publication{
+                margin-top: 5px;
+                padding-left: 17px;
+            }
+            .border-left {
+                border-left: 1px solid #ddd;
+            }
+            .experiments-line {
+                color: #999;
+            }
+        </style>
+        <template is="dom-if" if="{{data.evidenceCodeName}}">
+            <div class="evidence-container">
+                <div class="evidence-arrow">&#10549;</div>  Evidence {{index}}:
+                <span class="colored-label evidence-code-name">{{data.evidenceCodeName}}</span>
+                <span class="colored-label evidence-source">{{_getSource()}}</span>
+                <quality-label quality={{data.qualityQualifier}}></quality-label>
+                <div class="border-left">
+                    <template is="dom-if" if="{{data.numberOfExperiments}}">
+                        <div class="evidence-accession">
+                            <p class="experiments-line">Number of experiments: {{data.numberOfExperiments}}</p>
+                        </div>
+                    </template>
+                    <template is="dom-if" if="{{data.resourceAccession}}">
+                        <div class="evidence-accession">
+                            <p><a href="{{data.url}}" class="ext-link" target='_blank'>{{data.resourceAccession}}</a></p>
+                        </div>
+                    </template>
+                    <template is="dom-if" if="{{data.publication}}">
+                        <div class="evidence-publication">
+                            <publication-item data="{{data.publication}}"></publication-item>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </template>
+    <script>
+        Polymer({
+            is: 'evidence-item',
+            properties: {
+                data: {
+                    type: Object
+                },
+                index: {
+                    type: Number
+                }
+            },
+            _getSource: function(){
+                return this.data.resourceDb || this.data.assignedBy;
+            }
+        });
+    </script>
+</dom-module>

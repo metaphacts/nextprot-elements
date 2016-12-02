@@ -1,0 +1,400 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-collapse/iron-collapse.html">
+<link rel="import" href="../paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="evidence-item.html">
+<link rel="import" href="quality-label.html">
+<link rel="import" href="shared-styles.html">
+<script src="../nextprot-js/dist/nextprot.bundle.js"></script>
+<!--
+`generic-annotation-section`
+Annotation section used in function, medical, and expression views.
+
+#### Example
+    <generic-annotation-section section="function" categories='[ "GENERAL-ANNOTATION" ]'></generic-annotation-section>
+
+
+@demo demo/generic-annotation-demo.html
+-->
+<dom-module id="generic-annotation-section">
+    <template>
+        <style include="shared-styles">
+            :host {
+                display: block;
+            }
+            
+            #evidenceButton {
+                padding: 0px 5px 0px 0px;
+                margin-bottom: 10px;
+            }
+            
+            .xeno-label {
+                color: #999;
+                border: 1px solid;
+                border-radius: 2px;
+                padding: 0px 2px;
+                margin-left: 5px;
+            }
+        </style>
+        <div class="category-main">
+            <template is="dom-if" if="{{data}}">
+                <button id="evidenceButton" class="btn btn-default" on-click="_toggleAllEvidences">
+                    <template is="dom-if" if="{{evidencesShown}}">
+                        <iron-icon icon="arrow-drop-up"></iron-icon>
+                        hide evidences
+                    </template>
+                    <template is="dom-if" if="{{!evidencesShown}}">
+                        <iron-icon icon="arrow-drop-down"></iron-icon>
+                        show evidences
+                    </template>
+                </button>
+            </template>
+            <paper-spinner-lite id="spinner" active></paper-spinner-lite>
+            <template is="dom-repeat" items="{{_toArray(data)}}" as="category">
+                <div class="row category-row">
+                    <div class="col-lg-1 col-md-12 col-sm-12 col-xs-12">
+                        <h4 class="hidden-sm hidden-xs annotation-category-title"> {{category.name}}</h4>
+                        <h4 class="hidden-lg hidden-md annotation-category-title"> {{category.name}}</h4>
+                    </div>
+                    <div class="col-lg-11 col-md-10 col-sm-12 col-xs-12">
+                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" initial-count="10" rendered-item-count="{{trackItems}}">
+                            <div class="row annotation-row">
+                                <div class="col-lg-10 col-md-10 col-sm-9 col-xs-9">
+                                    <div class="annotation-title-container">
+                                        <template is="dom-if" if="{{annotation.value.chemicalName}}">
+                                            <template is="dom-if" if="{{_checkIfChebi(annotation.value.database)}}">
+                                                <p class="annotation-title col-lg-12 col-md-12 col-sm-12 col-xs-12" style="text-transform: capitalize">
+                                                    {{annotation.value.chemicalName}}
+                                                    <a href="https://www.ebi.ac.uk/chebi/searchId.do?chebiId={{annotation.value.accession}}" class="ext-link" target="_blank">{{annotation.value.accession}}</a>
+                                                    <quality-label quality="{{annotation.value.qualityQualifier}}"></quality-label>
+                                                </p>
+                                            </template>
+                                        </template>
+                                        <template is="dom-if" if="{{annotation.value.cvTermAccessionCode}}">
+                                            <p class="annotation-title" inner-h-t-m-l="{{_boldPattern(annotation.value.description, 'Contributes to')}}"></p>
+                                            <div class="annotation-labels">
+                                                <a class="accession-code-link" href="/term/{{annotation.value.cvTermAccessionCode}}">{{annotation.value.cvTermAccessionCode}}</a>
+                                                <button id="description-button-{{annotation.value.id}}" class="btn btn-sm btn-info" type="button" on-click="_toggle">Definition</button>
+                                                <quality-label quality="{{annotation.value.qualityQualifier}}"></quality-label>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="{{annotation.value.parentXref}}">
+                                            <p class="annotation-title col-lg-9 col-sm-7 col-xs-6">{{annotation.value.description}}</p>
+                                            <div class="col-lg-3 col-md-4 col-sm-5 col-xs-6 right">
+                                                <a class="accession-code-link btn btn-sm selectable" href="{{annotation.value.parentXref.resolvedUrl}}">{{annotation.value.parentXref.accession}}</a>
+                                            </div>
+                                        </template>
+                                        <template is="dom-if" if="{{!_checkIfContainsAccessionOrXref(annotation.value)}}">
+                                            <p class="annotation-title">{{annotation.value.description}}
+                                                <template is="dom-if" if="{{!_isBinaryInteractionOrCofactor(annotation.value.category)}}">
+                                                    <quality-label quality="{{annotation.value.qualityQualifier}}"></quality-label>
+                                                </template>
+                                            </p>
+                                            <template is="dom-if" if="{{annotation.value.selfInteraction}}">
+                                                <p class="annotation-title col-lg-12 col-md-12 col-sm-12 col-xs-12">Itself</p>
+                                            </template>
+                                            <template is="dom-if" if="{{annotation.value.geneName}}">
+                                                <p class="annotation-title col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                                                    <template is="dom-if" if="{{_checkIfNextprot(annotation.value.database)}}">
+                                                        <a href="{{annotation.value.url}}">{{annotation.value.geneName}}</a>
+                                                        <template is="dom-if" if="{{annotation.value.proteinName}}">
+                                                            >> {{annotation.value.proteinName}}
+                                                        </template>
+                                                    </template>
+                                                    <template is="dom-if" if="{{!_checkIfNextprot(annotation.value.database)}}">
+                                                        {{annotation.value.geneName}} >> {{annotation.value.database}}: <a href="{{annotation.value.url}}" class="ext-link">{{annotation.value.accession}}</a>
+                                                    </template>
+                                                    <template is="dom-if" if="{{annotation.value.xeno}}"><span class="xeno-label">Xeno</span>
+                                                    </template>
+                                                    <quality-label quality="{{annotation.value.qualityQualifier}}"></quality-label>
+                                                </p>
+                                            </template>
+                                        </template>
+                                    </div>
+                                    <iron-collapse id="description-container-{{annotation.value.id}}">
+                                        <div class="well blue-well">
+                                            {{annotation.value.cvTermDescription}}
+                                        </div>
+                                    </iron-collapse>
+                                    <iron-collapse id="evidences-container-{{annotation.value.id}}">
+                                        <div class="evidences-container hidden-xs">
+                                            <template is="dom-repeat" items="{{annotation.value.evidences}}" as="evidence">
+                                                <evidence-item data="{{evidence}}" index="{{_getIndex(index)}}"></evidence-item>
+                                            </template>
+                                        </div>
+                                    </iron-collapse>
+                                </div>
+                                <div class="col-lg-2 col-md-3 col-sm-3 col-xs-3">
+                                    <div class="show-references-button">
+                                        <a id="evidences-button-{{annotation.value.id}}" class="btn hidden-xs hidden-sm" on-click="_toggle">
+                                            <p class="show-references-button-counter">{{_countItems(annotation.value.evidences)}}</p>
+                                            <p class="show-references-button-label">ev</p>
+                                        </a>
+                                        <a id="evidences-button-sm-{{annotation.value.id}}" class="btn hidden-xl hidden-lg hidden-md" on-click="_toggle">
+                                            <p class="show-references-button-counter">{{_countItems(annotation.value.evidences)}}</p>
+                                            <p class="show-references-button-label">ev</p>
+                                        </a>
+                                        <div class="reference-label-container">
+                                            <template is="dom-repeat" items="{{annotation.value.evidenceSources}}" as="source">
+                                                <div class="reference-label">{{source}}</div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <iron-collapse id="evidences-container-sm-{{annotation.value.id}}" opened>
+                                <div class="evidence-container hidden-lg hidden-md">
+                                    <template is="dom-repeat" items="{{annotation.value.evidences}}" as="evidence">
+                                        <evidence-item data="{{evidence}}" index="{{_getIndex(index)}}"></evidence-item>
+                                    </template>
+                                </div>
+                            </iron-collapse>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </template>
+
+    <script>
+        Polymer({
+            is: 'generic-annotation-section',
+            properties: {
+                trackItems: {
+                    observer: "_logTrackItems"
+                },
+                nxConfig: {
+                    type: Object,
+                    value: {}
+                },
+                categories: {
+                    type: Array,
+                    value: []
+                },
+                categoryTitles: {
+                    type: Object,
+                    value: {}
+                },
+                section: {
+                    type: String
+                },
+                goldOnly: {
+                    type: Boolean,
+                    observer: "getAnnotationsByView"
+                },
+                showEvidences: {
+                    type: Boolean,
+                    value: false
+                },
+                count: {
+                    type: Number,
+                    notify: true
+                }
+            },
+            attached: function () {
+                if (this.evidencesShown === undefined) this._toggleAllEvidences();
+                var nx = new Nextprot.Client("neXtprot annotation loader", "Calipho Group");
+                var apiCall = [];
+                var self = this;
+                this.categories.forEach(function (a) {
+                    apiCall.push(nx.getAnnotationsByCategory(self.nxConfig.entry, a))
+                });
+                var self = this;
+                Promise.all(apiCall)
+                    .then(function (categories) {
+                        self.annotationsByCategory = categories;
+                        self.getAnnotationsByView();
+                        self.$.spinner.removeAttribute('active');
+                    }).catch(function (err) {
+                        // catch any error that happened so far
+                        console.log("Argh, broken: " + err.message);
+                        console.log("Error at line : " + err.stack);
+                        self.$.spinner.removeAttribute('active');
+                        self.count = 0;
+                    });
+            },
+            getAnnotationsByView: function () {
+                var data_xrefs = [];
+                var data_publi = [];
+                var data_annot = [];
+                this.count = 0;
+                this.annotationsByCategory.forEach(function (d) {
+                    Object.assign(data_xrefs, d.xrefs);
+                    Object.assign(data_publi, d.publi);
+                    $.merge(data_annot, d.annot);
+                });
+                data = {};
+                var self = this;
+                data_annot.forEach(function (a) {
+                    if (a.category == "cofactor") {
+                        a.chemicalName = a.bioObject.properties["chemical name"] ?
+                            a.bioObject.properties["chemical name"] : undefined;
+                    }
+                    if (a.category == "pathway") a.category = self._getUniqueListOfEvidenceSources(a.evidences) + " pathways";
+                    if (Object.keys(self.categoryTitles).indexOf(a.category) != -1) a.category = self.categoryTitles[a.category];
+                    if (a.description) a.description = a.description.charAt(0).toUpperCase() + a.description.slice(1);
+                    if (a.cvTermName) a.cvTermName = a.cvTermName.charAt(0).toUpperCase() + a.cvTermName.slice(1);
+                    if (a.bioObject) {
+                        a.geneName = a.bioObject.properties["geneName"];
+                        a.proteinName = a.bioObject.properties["proteinName"];
+                        a.url = a.bioObject.properties.url;
+                        a.database = a.bioObject.database;
+                        a.accession = a.bioObject.accession;
+                    }
+                    a.selfInteraction = a.propertiesMap.selfInteraction ? a.propertiesMap.selfInteraction[0].value : false;
+                    a.xeno = a.database != "neXtProt" ? true : false;
+                    if (!data.hasOwnProperty(a.category)) data[a.category] = [];
+                    a.evidences.forEach(function (obj) {
+                        if (obj.negativeEvidence == true && !a.description.startsWith("<b>Not </b>")) a.description = "<b>Not </b>" + a.description
+                    });
+                    if (a.annotationId === 0) a.annotationId = data_annot.indexOf(a);
+                    if (a.qualityQualifier === "GOLD" || self.goldOnly !== true) {
+                        data[a.category].push({
+                            id: a.annotationId,
+                            description: a.description || a.cvTermName,
+                            category: a.category.toUpperCase(),
+                            cvTermAccessionCode: a.cvTermAccessionCode,
+                            cvTermDescription: a.cvTermDescription,
+                            selfInteraction: a.selfInteraction == "true",
+                            xeno: a.xeno,
+                            geneName: a.geneName,
+                            proteinName: a.proteinName,
+                            accession: a.accession,
+                            chemicalName: a.chemicalName,
+                            url: a.url,
+                            database: a.database,
+                            parentXref: a.parentXref,
+                            evidences: a.evidences ? self._getEvidence(a.evidences, data_xrefs, data_publi) : [],
+                            evidenceSources: self._getUniqueListOfEvidenceSources(a.evidences),
+                            qualityQualifier: a.qualityQualifier
+                        });
+                    }
+                });
+                Object.keys(data).forEach(function (d) {
+                    self.count += data[d].length;
+                });
+                this.data = data;
+            },
+            _toggleAllEvidences: function () {
+                this.async(function () {
+                    this.evidencesShown = true;
+                    var evidenceContainers = Polymer.dom(this.root).querySelectorAll(".evidences-container");
+                    for (var e in evidenceContainers) {
+                        if (this.showEvidences == true) {
+                            evidenceContainers[e].parentNode.opened = true;
+                        } else {
+                            evidenceContainers[e].parentNode.opened = false;
+                        }
+                    }
+                    this.evidencesShown = this.showEvidences;
+                    this.showEvidences = !this.showEvidences;
+                }, 1);
+            },
+            _getEvidence: function (ev, xrefs, publi) {
+                function getUrl(id) {
+                    if (xrefs.hasOwnProperty(id)) {
+                        return xrefs[id].resolvedUrl;
+                    }
+                    return "";
+                }
+                var self = this;
+                return ev.map(function (e) {
+                    e.assignedBy = e.assignedBy.replace('NextProt', 'neXtProt');
+                    e.assignedBy = e.assignedBy.replace('Uniprot', 'UniProt');
+                    e.assignedBy = e.assignedBy.replace('GO_central', 'RefGenome');
+                    e.assignedBy = e.assignedBy.replace('KEGG_PTW', 'KEGG');
+                    e.numberOfExperiments = e.properties ? e.properties.numberOfExperiments : undefined;
+                    return {
+                        "evidenceCodeName": e.evidenceCodeName,
+                        "resourceAccession": e.resourceAccession,
+                        "assignedBy": e.assignedBy,
+                        "resourceDb": e.resourceDb,
+                        "negative": e.negativeEvidence,
+                        "qualityQualifier": e.qualityQualifier,
+                        "numberOfExperiments": e.numberOfExperiments,
+                        "url": getUrl(e.resourceId),
+                        "publication": self._getPublication(publi[e.publicationMD5])
+                    }
+                })
+            },
+            _getPublication: function (pub) {
+                if (pub) {
+                    return {
+                        publicationId: pub.publicationId,
+                        localUrl: "/publications/" + pub.publicationId,
+                        title: pub.title,
+                        authors: pub.authors,
+                        journalResourceLocator: pub.journalResourceLocator,
+                        volume: pub.volume,
+                        firstPage: pub.firstPage,
+                        lastPage: pub.lastPage,
+                        publicationYear: pub.publicationYear,
+                        dbXrefs: pub.dbXrefs,
+                        abstractText: pub.abstractText
+                    }
+                }
+            },
+            _getUniqueListOfEvidenceSources: function (evidenceList) {
+                var evidenceSourceList = [];
+                evidenceList.forEach(function (evidence) {
+                    if (evidenceSourceList.indexOf(evidence.assignedBy) < 0) {
+                        evidenceSourceList.push(evidence.assignedBy);
+                    }
+                });
+                return evidenceSourceList;
+            },
+            _checkIfContainsAccessionOrXref: function (annotation) {
+                return Boolean(annotation.cvTermAccessionCode || annotation.parentXref);
+            },
+            _toArray: function (obj) {
+                if (typeof obj === 'object') {
+                    return Object.keys(obj).map(function (key) {
+                        return {
+                            name: key,
+                            value: obj[key]
+                        };
+                    });
+                }
+                return null;
+            },
+            _getIndex: function (index) {
+                return index + 1;
+            },
+            _countItems: function (obj) {
+                return obj.length;
+            },
+            _logTrackItems: function (itms) {
+                console.log(itms);
+            },
+            _toggle: function (mouseEvent) {
+                var srcElementId = mouseEvent.srcElement.id || mouseEvent.srcElement.parentNode.id;
+                this.$$("#" + srcElementId.replace('button', 'container')).toggle();
+            },
+            _boldPattern: function (str, pattern) {
+                return str.replace(pattern, "<b>" + pattern + "</b>");
+            },
+            _isNewPathwayCategory: function (category, name) {
+                if (category == "pathway" && this.pathwayCategory != new String(name).split('_')[0]) {
+                    this.pathwayCategory = new String(name).split('_')[0];
+                    return true;
+                }
+                return false;
+            },
+            _checkIfNextAnnotHasTheSameSource: function (categoryObj, index) {
+                var firstAnnotCat = categoryObj[index]['evidenceSources'][0];
+                var secondAnnotCat = categoryObj[index + 1] ?
+                    categoryObj[index + 1]['evidenceSources'][0] : undefined;
+                return firstAnnotCat === secondAnnotCat;
+            },
+            _checkIfNextprot: function (databaseName) {
+                return databaseName.toLowerCase() === "nextprot";
+            },
+            _checkIfChebi: function (databaseName) {
+                return databaseName.toLowerCase() === "chebi";
+            },
+            _isBinaryInteractionOrCofactor: function (category) {
+                return (category === "BINARY INTERACTIONS" || category === "COFACTOR");
+            }
+        });
+    </script>
+</dom-module>

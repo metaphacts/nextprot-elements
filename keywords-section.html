@@ -1,0 +1,126 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-collapse/iron-collapse.html">
+<link rel="import" href="../paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="shared-styles.html">
+<script src="../nextprot-js/dist/nextprot.bundle.js"></script>
+<!--
+`keywords-section`
+Keywords section present on function, medical, sequence, and structures pages.
+##### Example
+          <keywords-section categories='["Biological process","Molecular function", "Technical term"]' exceptions='["KW-0002", "KW-0181", "KW-0903", "KW-0374", "KW-0582"]'></keywords-section>
+@demo demo/keywords-section-demo.html
+-->
+<dom-module id="keywords-section">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+    </style>
+    <div id="keywords-header" class="category-header">
+      <h4 id="{{title}}-title" class="category-title">Keywords</h4>
+      <paper-spinner-lite id="spinner" active></paper-spinner-lite>
+    </div>
+    <div class="category-main">
+      <template is="dom-repeat" items="{{_toArray(data)}}" as="category">
+        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotations">
+        <div class="row category-row">
+          <div class="col-lg-2 col-md-2 col-sm-12 col-xs-12">
+            <h4 class="hidden-sm hidden-xs annotation-category-title text-align-right"> {{annotations.name}}</h4>
+            <h4 class="hidden-xl hidden-lg hidden-md annotation-category-title text-align-left"> {{annotation.name}}</h4>
+          </div>
+          <div class="col-lg-10 col-md-10 col-sm-12 col-xs-12">
+              <template is="dom-repeat" items="{{annotations.value}}" as="annotation">
+                <div class="row annotation-row">
+                  <div class="annotation-title-container">
+                    <p class="annotation-title">{{annotation.cvTermName}}</p>
+                    <div class="annotation-labels col-md-6 col-sm-6 col-xs-6">
+                      <button id="{{annotation.cvTermAccessionCode}}-button" class="btn btn-info" on-click="toggle">Definition</button>
+                      <a class="accession-code-link btn selectable" href="/db/term/{{annotation.cvTermAccessionCode}}">{{annotation.cvTermAccessionCode}}</a>
+                    </div>
+                  </div>
+                </div>
+                <iron-collapse id="{{annotation.cvTermAccessionCode}}-container">
+                  <div class="well blue-well">
+                    {{annotation.cvTermDescription}}
+                  </div>
+                </iron-collapse>
+              </template>
+          </div>
+        </div>
+        </template>
+      </template>
+    </div>
+  </template>
+  <script>
+    Polymer({
+      is: 'keywords-section',
+      properties: {
+        categories: {
+          type: Array
+        },
+        exceptions: {
+          type: Array,
+          value: []
+        },
+        count: {
+          type: Number,
+          notify: true
+        }
+      },
+      created: function(){
+        var nx = new Nextprot.Client("neXtprot overview loader", "Calipho Group");
+        this.nxEntryName = nx.getEntryName();
+        var self=this;
+        nx.getAnnotationsByCategory(this.nxEntryName, "keyword")
+          .then(function (data) {
+            var keywordList = self.getKeywordsByView(data.annot);
+            self.$.spinner.active = false;
+          }).catch(function (err) {
+            // catch any error that happened so far
+            console.log("Argh, broken: " + err.message);
+            console.log("Error at line : " + err.stack);
+            self.$.spinner.active = false;
+            self.count = 0;
+          });
+      },
+      getKeywordsByView: function(list){
+        var count=0;
+        var data = {};
+        var self = this;
+        list.forEach(function (k) {
+          if (self.categories.indexOf(k.cvTermType) >= 0 && self.exceptions.indexOf(k.cvTermAccessionCode) < 0) {
+            if (data[k.cvTermType]) data[k.cvTermType].push(k);
+            else data[k.cvTermType] = [k];
+          }
+        });
+        this.data = Object.keys(data).map(function (key) {
+          var temp = {};
+          temp[key] = data[key];
+          return temp
+        });
+        this.data.sort(function (a, b) {
+          var textA = Object.keys(a)[0].toUpperCase();
+          var textB = Object.keys(b)[0].toUpperCase();
+          return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+        });
+        this.data.forEach(function(d){d[Object.keys(d)[0]].forEach(function(d2){count+=1;})});
+        this.count = count;
+      },
+      toggle: function(mouseEvent){
+        this.$$("#"+mouseEvent.srcElement.id.replace('button','container')).toggle();
+      },
+      _toArray: function(obj) {
+        if (typeof obj === 'object') {
+          return Object.keys(obj).map(function(key) {
+            return {
+              name: key,
+              value: obj[key]
+            };
+          });
+        }
+        return null;
+      },
+    });
+  </script>
+</dom-module>
