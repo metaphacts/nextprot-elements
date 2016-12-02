@@ -1,8 +1,9 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-collapse/iron-collapse.html">
 <link rel="import" href="../paper-spinner/paper-spinner-lite.html">
-<link rel="import" href="shared-styles.html">
 <script src="../nextprot-js/dist/nextprot.bundle.js"></script>
+<link rel="import" href="nextprot-elements-shared-styles.html">
+
 <!--
 `keywords-section`
 Keywords section present on function, medical, sequence, and structures pages.
@@ -12,7 +13,7 @@ Keywords section present on function, medical, sequence, and structures pages.
 -->
 <dom-module id="keywords-section">
   <template>
-    <style include="shared-styles">
+    <style include="nextprot-elements-shared-styles">
       :host {
         display: block;
       }
@@ -56,6 +57,10 @@ Keywords section present on function, medical, sequence, and structures pages.
     Polymer({
       is: 'keywords-section',
       properties: {
+        nxConfig: {
+          type: Object,
+          value: {}
+        },
         categories: {
           type: Array
         },
@@ -69,10 +74,10 @@ Keywords section present on function, medical, sequence, and structures pages.
         }
       },
       created: function(){
-        var nx = new Nextprot.Client("neXtprot overview loader", "Calipho Group");
+        var nx = new Nextprot.Client("keywords-section", "ndu");
         this.nxEntryName = nx.getEntryName();
         var self=this;
-        nx.getAnnotationsByCategory(this.nxEntryName, "keyword")
+        nx.getAnnotationsByCategory(self.nxConfig.entry, "keyword")
           .then(function (data) {
             var keywordList = self.getKeywordsByView(data.annot);
             self.$.spinner.active = false;

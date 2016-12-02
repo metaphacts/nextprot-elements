@@ -1,6 +1,6 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-spinner/paper-spinner-lite.html">
-<link rel="import" href="shared-styles.html">
+<link rel="import" href="nextprot-elements-shared-styles.html">
 <script src="../nextprot-js/dist/nextprot.bundle.js"></script>
 <!--
 `xrefs-section`
@@ -9,7 +9,7 @@ Exteranl links section present in function, medical, expression, interactions, s
 -->
 <dom-module id="xrefs-section">
   <template>
-    <style include="shared-styles">
+    <style include="nextprot-elements-shared-styles">
       :host {
         display: block;
       }
@@ -71,6 +71,10 @@ Exteranl links section present in function, medical, expression, interactions, s
     Polymer({
       is: 'xrefs-section',
       properties: {
+        nxConfig: {
+          type: Object,
+          value: {}
+        },
         categories: {
           type: Array
         },
@@ -82,8 +86,7 @@ Exteranl links section present in function, medical, expression, interactions, s
       ready: function(){
         var nx = new Nextprot.Client("xref-section", "ndu");
         var self=this;
-        var nxEntryName = nx.getEntryName();		
-        nx.getAnnotationsByCategory(nxEntryName, "xref")
+        nx.getAnnotationsByCategory(self.nxConfig.entry, "xref")
           .then(function (data) {
             self.getXrefByView(Object.keys(data.xrefs).map(function(k) { return data.xrefs[k] }));
             self.$.spinner.active = false;
