@@ -4,25 +4,25 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
-    <title>nextprot-web-elements test</title>
+    <title>nextprot-elements test</title>
 
     <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
     <script src="../../web-component-tester/browser.js"></script>
 
-    <link rel="import" href="../nextprot-web-elements.html">
+    <link rel="import" href="../nextprot-elements.html">
   </head>
   <body>
     <test-fixture id="basic">
       <template>
-        <nextprot-web-elements></nextprot-web-elements>
+        <nextprot-elements></nextprot-elements>
       </template>
     </test-fixture>
 
     <script>
-      suite('nextprot-web-elements', function() {
+      suite('nextprot-elements', function() {
         test('instantiating the element works', function() {
           var element = fixture('basic');
-          assert.equal(element.is, 'nextprot-web-elements');
+          assert.equal(element.is, 'nextprot-elements');
         });
       });
     </script>

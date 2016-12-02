@@ -1,6 +1,6 @@
 {
-  "name": "nextprot-web-elements",
-  "main": "nextprot-web-elements.html",
+  "name": "nextprot-elements",
+  "main": "nextprot-elements.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^1.4.0"
   },
