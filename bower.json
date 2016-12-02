@@ -12,6 +12,8 @@
     "neon-animation": "~1.2.4"
   },
   "keywords": [
+    "web-component",
+    "polymer",
     "web-components",
     "nextprot",
     "biojs"
