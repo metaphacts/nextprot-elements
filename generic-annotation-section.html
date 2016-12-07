@@ -2,10 +2,10 @@
 <link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../iron-collapse/iron-collapse.html">
 <link rel="import" href="../paper-spinner/paper-spinner-lite.html">
-<link rel="import" href="evidence-item.html">
-<link rel="import" href="quality-label.html">
-<link rel="import" href="nextprot-elements-shared-styles.html">
-<script src="../nextprot-js/src/nextprot-core.js"></script>
+<link rel="import" href="../evidence-item/evidence-item.html">
+<link rel="import" href="../quality-label/quality-label.html">
+<link rel="import" href="../shared-styles/shared-styles.html">
+<script src="../nextprot-js/dist/nextprot.core.js"></script>
 <!--
 `generic-annotation-section`
 Annotation section used in function, medical, and expression views.
@@ -22,12 +22,12 @@ Annotation section used in function, medical, and expression views.
             :host {
                 display: block;
             }
-            
+
             #evidenceButton {
                 padding: 0px 5px 0px 0px;
                 margin-bottom: 10px;
             }
-            
+
             .xeno-label {
                 color: #999;
                 border: 1px solid;
@@ -57,7 +57,7 @@ Annotation section used in function, medical, and expression views.
                         <h4 class="hidden-lg hidden-md annotation-category-title"> {{category.name}}</h4>
                     </div>
                     <div class="col-lg-11 col-md-10 col-sm-12 col-xs-12">
-                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" initial-count="2">
+                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" initial-count="1">
                             <div class="row annotation-row">
                                 <div class="col-lg-10 col-md-10 col-sm-9 col-xs-9">
                                     <div class="annotation-title-container">
@@ -104,7 +104,8 @@ Annotation section used in function, medical, and expression views.
                                                     <template is="dom-if" if="{{!_checkIfNextprot(annotation.value.database)}}">
                                                         {{annotation.value.geneName}} >> {{annotation.value.database}}: <a href="{{annotation.value.url}}" class="ext-link">{{annotation.value.accession}}</a>
                                                     </template>
-                                                    <template is="dom-if" if="{{annotation.value.xeno}}"><span class="xeno-label">Xeno</span>
+                                                    <template is="dom-if" if="{{annotation.value.xeno}}">
+                                                        <span class="xeno-label">Xeno</span>
                                                     </template>
                                                     <quality-label quality="{{annotation.value.qualityQualifier}}"></quality-label>
                                                 </p>
@@ -188,34 +189,34 @@ Annotation section used in function, medical, and expression views.
                     notify: true
                 }
             },
-            attached: function () {
-                if (this.evidencesShown === undefined) this._toggleAllEvidences();
+            ready: function(){
+                if(this.evidencesShown===undefined) this._toggleAllEvidences();
                 var nx = new Nextprot.Client("neXtprot annotation loader", "Calipho Group");
                 var apiCall = [];
                 var self = this;
-                this.categories.forEach(function (a) {
+                this.categories.forEach(function(a){
                     apiCall.push(nx.getAnnotationsByCategory(self.nxConfig.entry, a))
                 });
                 var self = this;
                 Promise.all(apiCall)
-                    .then(function (categories) {
-                        self.annotationsByCategory = categories;
-                        self.getAnnotationsByView();
-                        self.$.spinner.removeAttribute('active');
-                    }).catch(function (err) {
-                        // catch any error that happened so far
-                        console.log("Argh, broken: " + err.message);
-                        console.log("Error at line : " + err.stack);
-                        self.$.spinner.removeAttribute('active');
-                        self.count = 0;
-                    });
+                        .then(function (categories) {
+                            self.annotationsByCategory = categories;
+                            self.getAnnotationsByView();
+                            self.$.spinner.removeAttribute('active');
+                        }).catch(function (err) {
+                            // catch any error that happened so far
+                            console.log("Argh, broken: " + err.message);
+                            console.log("Error at line : " + err.stack);
+                            self.$.spinner.removeAttribute('active');
+                            self.count = 0;
+                        });
             },
-            getAnnotationsByView: function () {
+            getAnnotationsByView: function() {
                 var data_xrefs = [];
                 var data_publi = [];
                 var data_annot = [];
                 this.count = 0;
-                this.annotationsByCategory.forEach(function (d) {
+                this.annotationsByCategory.forEach(function(d) {
                     Object.assign(data_xrefs, d.xrefs);
                     Object.assign(data_publi, d.publi);
                     $.merge(data_annot, d.annot);
@@ -223,36 +224,37 @@ Annotation section used in function, medical, and expression views.
                 data = {};
                 var self = this;
                 data_annot.forEach(function (a) {
-                    if (a.category == "cofactor") {
+                    if (a.category=="cofactor") {
                         a.chemicalName = a.bioObject.properties["chemical name"] ?
-                            a.bioObject.properties["chemical name"] : undefined;
+                                a.bioObject.properties["chemical name"] : undefined;
                     }
-                    if (a.category == "pathway") a.category = self._getUniqueListOfEvidenceSources(a.evidences) + " pathways";
-                    if (Object.keys(self.categoryTitles).indexOf(a.category) != -1) a.category = self.categoryTitles[a.category];
-                    if (a.description) a.description = a.description.charAt(0).toUpperCase() + a.description.slice(1);
-                    if (a.cvTermName) a.cvTermName = a.cvTermName.charAt(0).toUpperCase() + a.cvTermName.slice(1);
+                    if(a.category=="pathway") a.category=self._getUniqueListOfEvidenceSources(a.evidences)+" pathways";
+                    if(Object.keys(self.categoryTitles).indexOf(a.category)!=-1) a.category = self.categoryTitles[a.category];
+                    if (a.description) a.description=a.description.charAt(0).toUpperCase()+ a.description.slice(1);
+                    if (a.cvTermName) a.cvTermName=a.cvTermName.charAt(0).toUpperCase()+a.cvTermName.slice(1);
+
                     if (a.bioObject) {
-                        a.geneName = a.bioObject.properties["geneName"];
-                        a.proteinName = a.bioObject.properties["proteinName"];
-                        a.url = a.bioObject.properties.url;
-                        a.database = a.bioObject.database;
-                        a.accession = a.bioObject.accession;
+                        a.geneName=a.bioObject.properties.geneName;
+                        a.proteinName=a.bioObject.propertie.proteinName;
+                        a.url=a.bioObject.properties.url;
+                        a.database=a.bioObject.database;
+                        a.accession=a.bioObject.accession;
                     }
                     a.selfInteraction = a.propertiesMap.selfInteraction ? a.propertiesMap.selfInteraction[0].value : false;
-                    a.xeno = a.database != "neXtProt" ? true : false;
-                    if (!data.hasOwnProperty(a.category)) data[a.category] = [];
-                    a.evidences.forEach(function (obj) {
-                        if (obj.negativeEvidence == true && !a.description.startsWith("<b>Not </b>")) a.description = "<b>Not </b>" + a.description
+                    a.xeno = a.database!="neXtProt" ? true : false;
+                    if (!data.hasOwnProperty(a.category)) data[a.category]=[];
+                    a.evidences.forEach(function(obj){
+                        if(obj.negativeEvidence==true && !a.description.startsWith("<b>Not </b>")) a.description = "<b>Not </b>"+a.description
                     });
-                    if (a.annotationId === 0) a.annotationId = data_annot.indexOf(a);
-                    if (a.qualityQualifier === "GOLD" || self.goldOnly !== true) {
+                    if(a.annotationId===0) a.annotationId=data_annot.indexOf(a);
+                    if(a.qualityQualifier==="GOLD" || self.goldOnly!==true){
                         data[a.category].push({
                             id: a.annotationId,
                             description: a.description || a.cvTermName,
                             category: a.category.toUpperCase(),
                             cvTermAccessionCode: a.cvTermAccessionCode,
                             cvTermDescription: a.cvTermDescription,
-                            selfInteraction: a.selfInteraction == "true",
+                            selfInteraction: a.selfInteraction=="true",
                             xeno: a.xeno,
                             geneName: a.geneName,
                             proteinName: a.proteinName,
@@ -267,14 +269,12 @@ Annotation section used in function, medical, and expression views.
                         });
                     }
                 });
-                Object.keys(data).forEach(function (d) {
-                    self.count += data[d].length;
-                });
+                Object.keys(data).forEach(function(d){self.count+=data[d].length;});
                 this.data = data;
             },
-            _toggleAllEvidences: function () {
-                this.async(function () {
-                    this.evidencesShown = true;
+            _toggleAllEvidences: function(){
+                this.async(function() {
+                    this.evidencesShown=true;
                     var evidenceContainers = Polymer.dom(this.root).querySelectorAll(".evidences-container");
                     for (var e in evidenceContainers) {
                         if (this.showEvidences == true) {
@@ -287,19 +287,19 @@ Annotation section used in function, medical, and expression views.
                     this.showEvidences = !this.showEvidences;
                 }, 1);
             },
-            _getEvidence: function (ev, xrefs, publi) {
-                function getUrl(id) {
+            _getEvidence: function(ev, xrefs, publi){
+                function getUrl(id){
                     if (xrefs.hasOwnProperty(id)) {
                         return xrefs[id].resolvedUrl;
                     }
                     return "";
                 }
                 var self = this;
-                return ev.map(function (e) {
-                    e.assignedBy = e.assignedBy.replace('NextProt', 'neXtProt');
-                    e.assignedBy = e.assignedBy.replace('Uniprot', 'UniProt');
-                    e.assignedBy = e.assignedBy.replace('GO_central', 'RefGenome');
-                    e.assignedBy = e.assignedBy.replace('KEGG_PTW', 'KEGG');
+                return ev.map(function(e){
+                    e.assignedBy=e.assignedBy.replace('NextProt', 'neXtProt');
+                    e.assignedBy=e.assignedBy.replace('Uniprot', 'UniProt');
+                    e.assignedBy=e.assignedBy.replace('GO_central', 'RefGenome');
+                    e.assignedBy=e.assignedBy.replace('KEGG_PTW', 'KEGG');
                     e.numberOfExperiments = e.properties ? e.properties.numberOfExperiments : undefined;
                     return {
                         "evidenceCodeName": e.evidenceCodeName,
@@ -314,11 +314,11 @@ Annotation section used in function, medical, and expression views.
                     }
                 })
             },
-            _getPublication: function (pub) {
-                if (pub) {
+            _getPublication: function(pub){
+                if(pub){
                     return {
                         publicationId: pub.publicationId,
-                        localUrl: "/publications/" + pub.publicationId,
+                        localUrl: "/publications/"+pub.publicationId,
                         title: pub.title,
                         authors: pub.authors,
                         journalResourceLocator: pub.journalResourceLocator,
@@ -331,21 +331,21 @@ Annotation section used in function, medical, and expression views.
                     }
                 }
             },
-            _getUniqueListOfEvidenceSources: function (evidenceList) {
+            _getUniqueListOfEvidenceSources: function(evidenceList){
                 var evidenceSourceList = [];
-                evidenceList.forEach(function (evidence) {
-                    if (evidenceSourceList.indexOf(evidence.assignedBy) < 0) {
+                evidenceList.forEach(function(evidence){
+                    if(evidenceSourceList.indexOf(evidence.assignedBy) < 0) {
                         evidenceSourceList.push(evidence.assignedBy);
                     }
                 });
                 return evidenceSourceList;
             },
-            _checkIfContainsAccessionOrXref: function (annotation) {
+            _checkIfContainsAccessionOrXref: function(annotation){
                 return Boolean(annotation.cvTermAccessionCode || annotation.parentXref);
             },
-            _toArray: function (obj) {
+            _toArray: function(obj) {
                 if (typeof obj === 'object') {
-                    return Object.keys(obj).map(function (key) {
+                    return Object.keys(obj).map(function(key) {
                         return {
                             name: key,
                             value: obj[key]
@@ -354,40 +354,40 @@ Annotation section used in function, medical, and expression views.
                 }
                 return null;
             },
-            _getIndex: function (index) {
-                return index + 1;
+            _getIndex: function(index){
+                return index+1;
             },
-            _countItems: function (obj) {
+            _countItems: function(obj){
                 return obj.length;
             },
-            _toggle: function (mouseEvent) {
-                var srcElementId = mouseEvent.srcElement.id || mouseEvent.srcElement.parentNode.id;
-                this.$$("#" + srcElementId.replace('button', 'container')).toggle();
+            _toggle: function(mouseEvent){
+                var srcElementId = mouseEvent.target.id || mouseEvent.target.parentNode.id;
+                this.$$("#"+srcElementId.replace('button','container')).toggle();
             },
-            _boldPattern: function (str, pattern) {
-                return str.replace(pattern, "<b>" + pattern + "</b>");
+            _boldPattern: function(str, pattern){
+                return str.replace(pattern, "<b>"+pattern+"</b>");
             },
-            _isNewPathwayCategory: function (category, name) {
-                if (category == "pathway" && this.pathwayCategory != new String(name).split('_')[0]) {
+            _isNewPathwayCategory: function(category, name){
+                if (category=="pathway" && this.pathwayCategory!=new String(name).split('_')[0]) {
                     this.pathwayCategory = new String(name).split('_')[0];
                     return true;
                 }
                 return false;
             },
-            _checkIfNextAnnotHasTheSameSource: function (categoryObj, index) {
+            _checkIfNextAnnotHasTheSameSource: function(categoryObj, index){
                 var firstAnnotCat = categoryObj[index]['evidenceSources'][0];
-                var secondAnnotCat = categoryObj[index + 1] ?
-                    categoryObj[index + 1]['evidenceSources'][0] : undefined;
-                return firstAnnotCat === secondAnnotCat;
+                var secondAnnotCat = categoryObj[index+1] ?
+                        categoryObj[index+1]['evidenceSources'][0] : undefined;
+                return firstAnnotCat===secondAnnotCat;
             },
-            _checkIfNextprot: function (databaseName) {
-                return databaseName.toLowerCase() === "nextprot";
+            _checkIfNextprot: function(databaseName){
+                return databaseName.toLowerCase()==="nextprot";
             },
-            _checkIfChebi: function (databaseName) {
-                return databaseName.toLowerCase() === "chebi";
+            _checkIfChebi: function(databaseName){
+                return databaseName.toLowerCase()==="chebi";
             },
-            _isBinaryInteractionOrCofactor: function (category) {
-                return (category === "BINARY INTERACTIONS" || category === "COFACTOR");
+            _isBinaryInteractionOrCofactor: function (category){
+                return (category==="BINARY INTERACTIONS" || category==="COFACTOR");
             }
         });
     </script>
