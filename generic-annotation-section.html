@@ -68,7 +68,7 @@ Annotation section used in function, medical, and expression views.
                         <h4 class="hidden-lg hidden-md annotation-category-title"> {{category.name}}</h4>
                     </div>
                     <div class="col-lg-11 col-md-10 col-sm-12 col-xs-12">
-                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" sort="_sortBinary" initial-count="1" target-framerate="1">
+                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" sort="_sortBinary" filter="_filterGold" initial-count="1" target-framerate="1">
                             <div class="row annotation-row">
                                 <div class="col-lg-10 col-md-10 col-sm-9 col-xs-9">
                                     <div class="annotation-title-container">
@@ -189,7 +189,7 @@ Annotation section used in function, medical, and expression views.
                 },
                 goldOnly: {
                     type: Boolean,
-                    observer: "getAnnotationsByView"
+                    observer: "_getAnnotationsByView"
                 },
                 showEvidences: {
                     type: Boolean,
@@ -212,7 +212,7 @@ Annotation section used in function, medical, and expression views.
                 Promise.all(apiCall)
                         .then(function (categories) {
                             self.annotationsByCategory = categories;
-                            self.getAnnotationsByView();
+                            self._getAnnotationsByView();
                             self.$.spinner.removeAttribute('active');
                         }).catch(function (err) {
                             // catch any error that happened so far
@@ -222,7 +222,7 @@ Annotation section used in function, medical, and expression views.
                             self.count = 0;
                         });
             },
-            getAnnotationsByView: function() {
+            _getAnnotationsByView: function() {
                 var data_xrefs = [];
                 var data_publi = [];
                 var data_annot = [];
@@ -258,27 +258,25 @@ Annotation section used in function, medical, and expression views.
                         if(obj.negativeEvidence==true && !a.description.startsWith("<b>Not </b>")) a.description = "<b>Not </b>"+a.description
                     });
                     if(a.annotationId===0) a.annotationId=data_annot.indexOf(a);
-                    if(a.qualityQualifier==="GOLD" || self.goldOnly!==true){
-                        data[a.category].push({
-                            id: a.annotationId,
-                            description: a.description || a.cvTermName,
-                            category: a.category.toUpperCase(),
-                            cvTermAccessionCode: a.cvTermAccessionCode,
-                            cvTermDescription: a.cvTermDescription,
-                            selfInteraction: a.selfInteraction=="true",
-                            xeno: a.xeno,
-                            geneName: a.geneName,
-                            proteinName: a.proteinName,
-                            accession: a.accession,
-                            chemicalName: a.chemicalName,
-                            url: a.url,
-                            database: a.database,
-                            parentXref: a.parentXref,
-                            evidences: a.evidences ? self._getEvidence(a.evidences, data_xrefs, data_publi) : [],
-                            evidenceSources: self._getUniqueListOfEvidenceSources(a.evidences),
-                            qualityQualifier: a.qualityQualifier
-                        });
-                    }
+                    data[a.category].push({
+                        id: a.annotationId,
+                        description: a.description || a.cvTermName,
+                        category: a.category.toUpperCase(),
+                        cvTermAccessionCode: a.cvTermAccessionCode,
+                        cvTermDescription: a.cvTermDescription,
+                        selfInteraction: a.selfInteraction=="true",
+                        xeno: a.xeno,
+                        geneName: a.geneName,
+                        proteinName: a.proteinName,
+                        accession: a.accession,
+                        chemicalName: a.chemicalName,
+                        url: a.url,
+                        database: a.database,
+                        parentXref: a.parentXref,
+                        evidences: a.evidences ? self._getEvidence(a.evidences, data_xrefs, data_publi) : [],
+                        evidenceSources: self._getUniqueListOfEvidenceSources(a.evidences),
+                        qualityQualifier: a.qualityQualifier
+                    });
                 });
                 Object.keys(data).forEach(function(d){self.count+=data[d].length;});
                 this.data = data;
@@ -290,6 +288,10 @@ Annotation section used in function, medical, and expression views.
                 if (b.value.geneName=="-") return -1;
                 return a.value.geneName.toLowerCase() > b.value.geneName.toLowerCase() ? 1 : -1;
 
+            },
+            _filterGold: function(item){
+                if (this.goldOnly) return item.value.qualityQualifier==="GOLD";
+                return true;
             },
             _toggleAllEvidences: function(){
                 this.async(function() {
