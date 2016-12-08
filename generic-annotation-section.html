@@ -190,7 +190,7 @@ Annotation section used in function, medical, and expression views.
             },
             attached: function () {
                 if (this.evidencesShown === undefined) this._toggleAllEvidences();
-                var nx = new Nextprot.Client("neXtprot annotation loader", "Calipho Group");
+                var nx = new Nextprot.Client("generic-annotation-section", "ndu");
                 var apiCall = [];
                 var self = this;
                 this.categories.forEach(function (a) {
