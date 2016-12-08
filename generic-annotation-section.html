@@ -2,9 +2,20 @@
 <link rel="import" href="../iron-icon/iron-icon.html">
 <link rel="import" href="../iron-collapse/iron-collapse.html">
 <link rel="import" href="../paper-spinner/paper-spinner-lite.html">
-<link rel="import" href="../evidence-item/evidence-item.html">
-<link rel="import" href="../quality-label/quality-label.html">
-<link rel="import" href="../shared-styles/shared-styles.html">
+<link rel="import" href="evidence-item.html">
+<link rel="import" href="quality-label.html">
+<link rel="import" href="nextprot-elements-shared-styles.html">
+<script>
+    //Load JQuery if necessary
+    if(typeof jQuery === "undefined"){
+        (function(){
+            var newscript = document.createElement('script');
+            newscript.type = 'text/javascript';
+            newscript.src = '../../jquery/dist/jquery.min.js';
+            (document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(newscript);
+        })();
+    }
+</script>
 <script src="../nextprot-js/src/nextprot-core.js"></script>
 <!--
 `generic-annotation-section`
@@ -57,7 +68,7 @@ Annotation section used in function, medical, and expression views.
                         <h4 class="hidden-lg hidden-md annotation-category-title"> {{category.name}}</h4>
                     </div>
                     <div class="col-lg-11 col-md-10 col-sm-12 col-xs-12">
-                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" initial-count="1">
+                        <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" sort="_sortBinary" initial-count="1" target-framerate="1">
                             <div class="row annotation-row">
                                 <div class="col-lg-10 col-md-10 col-sm-9 col-xs-9">
                                     <div class="annotation-title-container">
@@ -271,6 +282,14 @@ Annotation section used in function, medical, and expression views.
                 });
                 Object.keys(data).forEach(function(d){self.count+=data[d].length;});
                 this.data = data;
+            },
+            _sortBinary: function(a,b) {
+                if (a.value.selfInteraction) return -1;
+                if (b.value.selfInteraction) return 1;
+                if (a.value.geneName=="-") return 1;
+                if (b.value.geneName=="-") return -1;
+                return a.value.geneName.toLowerCase() > b.value.geneName.toLowerCase() ? 1 : -1;
+
             },
             _toggleAllEvidences: function(){
                 this.async(function() {
