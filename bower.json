@@ -10,7 +10,8 @@
     "nextprot-js": "nextprot#~0.0.93",
     "bootstrap": "~3.3.7",
     "font-awesome": "~4.7.0",
-    "neon-animation": "~1.2.4"
+    "neon-animation": "~1.2.4",
+    "paper-spinner": "^1.2.1"
   },
   "keywords": [
     "web-component",
