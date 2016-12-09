@@ -39,12 +39,15 @@ Annotation section used in function, medical, and expression views.
                 margin-bottom: 10px;
             }
 
-            .xeno-label {
+            .xeno-label, .isoform-label {
                 color: #999;
                 border: 1px solid;
                 border-radius: 2px;
                 padding: 0px 2px;
                 margin-left: 5px;
+            }
+            .grey-x {
+                margin-bottom: 10px;
             }
         </style>
         <div class="category-main">
@@ -69,6 +72,9 @@ Annotation section used in function, medical, and expression views.
                     </div>
                     <div class="col-lg-11 col-md-10 col-sm-12 col-xs-12">
                         <template is="dom-repeat" items="{{_toArray(category.value)}}" as="annotation" sort="_sortBinary" filter="_filterGold" initial-count="1" target-framerate="1">
+                            <template is="dom-if" if="{{annotation.value.newSection}}">
+                                <div class="grey-x">Interactions for Isoform {{annotation.value.isoformSpecific}}</div>
+                            </template>
                             <div class="row annotation-row">
                                 <div class="col-lg-10 col-md-10 col-sm-9 col-xs-9">
                                     <div class="annotation-title-container">
@@ -114,6 +120,9 @@ Annotation section used in function, medical, and expression views.
                                                     </template>
                                                     <template is="dom-if" if="{{!_checkIfNextprot(annotation.value.database)}}">
                                                         {{annotation.value.geneName}} >> {{annotation.value.database}}: <a href="{{annotation.value.url}}" class="ext-link">{{annotation.value.accession}}</a>
+                                                    </template>
+                                                    <template is="dom-if" if="{{annotation.value.interactantIsoform}}">
+                                                        <span class="isoform-label">Isoform {{annotation.value.interactantIsoform}}</span>
                                                     </template>
                                                     <template is="dom-if" if="{{annotation.value.xeno}}">
                                                         <span class="xeno-label">Xeno</span>
@@ -225,11 +234,13 @@ Annotation section used in function, medical, and expression views.
             _getAnnotationsByView: function() {
                 var data_xrefs = [];
                 var data_publi = [];
+                var data_isoforms = [];
                 var data_annot = [];
                 this.count = 0;
                 this.annotationsByCategory.forEach(function(d) {
                     Object.assign(data_xrefs, d.xrefs);
                     Object.assign(data_publi, d.publi);
+                    Object.assign(data_isoforms, d.isoforms);
                     $.merge(data_annot, d.annot);
                 });
                 data = {};
@@ -250,6 +261,7 @@ Annotation section used in function, medical, and expression views.
                         a.url=a.bioObject.properties.url;
                         a.database=a.bioObject.database;
                         a.accession=a.bioObject.accession;
+                        if(a.bioObject.bioType=="PROTEIN_ISOFORM") {a.interactantIsoform=a.bioObject.properties.isoformName;};
                     }
                     a.selfInteraction = a.propertiesMap.selfInteraction ? a.propertiesMap.selfInteraction[0].value : false;
                     a.xeno = a.database!="neXtProt" ? true : false;
@@ -258,6 +270,15 @@ Annotation section used in function, medical, and expression views.
                         if(obj.negativeEvidence==true && !a.description.startsWith("<b>Not </b>")) a.description = "<b>Not </b>"+a.description
                     });
                     if(a.annotationId===0) a.annotationId=data_annot.indexOf(a);
+                    if (a.category=="Binary Interactions") {
+                        for (i in a.targetingIsoformsMap){
+                            var isoform = a.targetingIsoformsMap[i];
+                            if (isoform.specificity=="SPECIFIC"){
+                                a.isoformSpecific = data_isoforms[isoform.isoformAccession].mainEntityName.name;
+                            }
+                        }
+
+                    }
                     data[a.category].push({
                         id: a.annotationId,
                         description: a.description || a.cvTermName,
@@ -275,13 +296,31 @@ Annotation section used in function, medical, and expression views.
                         parentXref: a.parentXref,
                         evidences: a.evidences ? self._getEvidence(a.evidences, data_xrefs, data_publi) : [],
                         evidenceSources: self._getUniqueListOfEvidenceSources(a.evidences),
-                        qualityQualifier: a.qualityQualifier
+                        qualityQualifier: a.qualityQualifier,
+                        isoformSpecific: a.isoformSpecific,
+                        interactantIsoform: a.interactantIsoform
                     });
                 });
                 Object.keys(data).forEach(function(d){self.count+=data[d].length;});
                 this.data = data;
             },
             _sortBinary: function(a,b) {
+                if (a.value.isoformSpecific && !b.value.isoformSpecific) return 1
+                if (!a.value.isoformSpecific && b.value.isoformSpecific) return -1
+                if (a.value.isoformSpecific && b.value.isoformSpecific && b.value.isoformSpecific===a.value.isoformSpecific){
+                    if(a.value.geneName.toLowerCase() > b.value.geneName.toLowerCase()) {
+                        a.value.newSection=false;
+                        b.value.newSection=true;
+                    } else {
+                        a.value.newSection=true;
+                        b.value.newSection=false;
+                    }
+                }
+                if (a.value.isoformSpecific && b.value.isoformSpecific && a.value.isoformSpecific!==b.value.isoformSpecific){
+                    a.value.newSection=true;
+                    b.value.newSection=true;
+                    return a.value.isoformSpecific.toLowerCase() > b.value.isoformSpecific.toLowerCase() ? 1 : -1;
+                }
                 if (a.value.selfInteraction) return -1;
                 if (b.value.selfInteraction) return 1;
                 if (a.value.geneName=="-") return 1;
