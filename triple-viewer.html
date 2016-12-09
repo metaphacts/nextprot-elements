@@ -1,0 +1,653 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="evidence-item.html">
+<link rel="import" href="quality-label.html">
+<link rel="import" href="nextprot-elements-shared-styles.html">
+<script src="../feature-viewer/dist/feature-viewer.bundle.js"></script>
+<script src="../sequence-viewer/dist/sequence-viewer.min.js"></script>
+<script src="../nextprot/src/nextprot-core.js"></script>
+<script src="../nextprot/src/nextprot-utils.js"></script>
+<!--
+`triple-viewer`
+Complex element joining nextprot feature viewer, feature table and sequence viewer
+@demo demo/index.html
+-->
+<dom-module id="triple-viewer">
+    <link rel="stylesheet" type="text/css" href="../feature-viewer/dist/feature-viewer.min.css">
+    <template>
+        <style is="custom-style" include="nextprot-elements-shared-styles">
+            :host {
+                display: block;
+            }
+            evidence-item {
+                padding: 8px 0 0 0;
+                margin: 5px 40px;
+            }
+            td[hidden] {
+                display: none;
+            }
+            #featuresTable {
+                font-size:11px;
+                background:#fff;
+                padding:5px 15px;
+                height:600px;
+                border: 1px solid #cfd9db;
+                border-radius:4px;
+                margin:10px 0px;
+            }
+            #featuresTable .variant-description{
+                color:#00C500;
+            }
+            table#featTable>tbody>tr>th {
+                padding: 0 8px;
+            }
+            table#featTable>tbody>tr:first-of-type + tr {
+                border-top: none;
+            }
+            table#featTable>tbody>tr {
+                border-top: 1px solid #ddd;
+                border-bottom: none;
+            }
+            table#featTable>tbody>tr>td {
+                border: none;
+            }
+            table#featTable>tbody>tr .table-row-evidence {
+                padding: 0 8px;
+            }
+            #seqViewer ::content > .seqHeader {
+                width: 100%;
+            }
+            #seqViewer ::content > .seqHeader > div {
+                display: inline-block;
+                vertical-align: top;
+                text-align: center;
+                width: 25%;
+            }
+            #seqViewer {
+                background:#fff;
+                padding:5px 15px;
+                height:600px;
+                border: 1px solid #cfd9db;
+                border-radius:4px;
+            }
+            .seqHeader{
+                margin-bottom:5px;
+                border-bottom:1px solid #E7EAEC;
+                height:45px;
+            }
+            .seqHeader>div{
+                display: inline-block;
+                margin:10px;
+            }
+            #seqViewer .seqInfos{
+                display: inline-block;
+                vertical-align: middle;
+                font-size:11px;
+                text-align: center;
+                float:right;
+                margin: 10px 5px 0px;
+            }
+            #seqViewer .seqInfos>.seqLabel{
+                font-weight: 900;
+                color:#777;
+            }
+            #seqViewer .seqInfos>.seqValue{
+                color:white;
+                padding:3px 5px;
+                text-align: center;
+                border-radius:3px;
+                float:right;
+            }
+            #seqViewer .seqIso>.seqValue{
+                background-color:#23c6c8;
+            }
+            #seqViewer .seqAALength>.seqValue{
+                background-color:#33C59E;
+                font-weight:700;
+            }
+            #seqViewer .seqMass>.seqValue{
+                background-color:#f8ac59;
+            }
+            #seqViewer .seqpI>.seqValue{
+                background-color:#92896F;
+            }
+            .evidenceNumber {
+                background: #7CBA0F;
+                padding: 4px 8px;
+                border-radius: 2px;
+                color: white;
+                vertical-align: top;
+                cursor: pointer;
+            }
+            .filter-block {
+                margin:0px 20px;
+                float:left;
+            }
+            .tableHighlight {
+                background-color:rgba(197, 0, 99, 0.1) !important;
+            }
+            .tableHighlight td{
+                background-color:rgba(197, 0, 99, 0.1) !important;
+            }
+            .right-block {
+                margin:10px 0px;
+                padding-right:0px;
+            }
+            .sequenceRangeSpan {
+                line-height: 0.8;
+                vertical-align:top;
+            }
+        </style>
+        <div class="row">
+            <div id="featureViewer">
+                <div class="filter-block row">
+                    <div class="filter-heading">
+                        <span class="fa fa-filter"></span>
+                        <h5>FILTER</h5>
+                    </div>
+                    <div class="filter-body">
+                        <div id="filtering" class="all-filters">
+                            <button class="btn btn-default btn-sm" id="allFilters">All/None</button>
+                            <template is="dom-repeat" items="{{_toArray(activeFiltering)}}" as="filter">
+                                {{filter}}
+                                <label class="filter-box">
+                                    <input type="checkbox" id={{filter.name}} value="option1" checked>{{filter.value}}
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div id="featuresTable" class="col-md-6">
+                <div id="featTableScroller" class="section-scroller">
+                    <table id="featTable" class="table table-striped table-fixed">
+                        <thead>
+                        <tr>
+                            <th class="featName" class="col-md-2">Name</th>
+                            <th class="col-md-2 text-align-right">Position</th>
+                            <th class="col-md-1 text-align-right">Length</th>
+                            <th class="col-md-5">Description</th>
+                            <th colspan="2" class="col-md-2 text-align-left">Evidence</th>
+                        </tr>
+                        </thead>
+                        <template is="dom-repeat" items="[[_toArray(groupedFeatures)]]" as="featureGroup">
+                            <tbody><!--{{_formatClassName(featureGroup.name, featureGroup.value.group)}} -->
+                            <tr><th colspan="6" class="general-info table-section-header"><div class="grey-x">[[featureGroup.name]]</div></th></tr>
+                            <template is="dom-repeat" items="[[featureGroup.value]]" as="feature">
+                                <!--[[_formatClassName(feature.category, feature.group)]] -->
+                                <tr id=[[feature.id]] class="general-info">
+                                    <td>[[feature.category]]</td>
+                                    <td class="text-align-right"><a class="featPosition" on-tap="test">
+                                        <span inner-h-t-m-l="[[feature.range]]"></span>
+                                    </a></td>
+                                    <td class="text-align-right">[[feature.length]]</td>
+                                    <td><span inner-h-t-m-l="[[feature.link]]"></span>
+                                        <span inner-h-t-m-l="[[feature.crossRef]]"></span>
+                                        <template is="dom-if" if="[[!feature.proteotypicity]]">
+                                            <span class="nonProteotypic">found in other entries</span>
+                                        </template>
+                                        <quality-label quality="[[feature.quality]]"></quality-label>
+                                    </td>
+                                    <template is="dom-if" if="[[feature.source]]">
+                                        <td class="text-align-right">
+                                            <span id="evidences-button-[[feature.id]]" class="evidenceNumber" data-args$="[[feature]]" on-tap="_showEvidences">[[feature.evidenceLength]]</span>
+                                        </td>
+                                        <td>
+                                            <div class="reference-label-container">
+                                                <template is="dom-repeat" items="[[feature.evidenceSources]]" as="source">
+                                                    <div class="reference-label">[[source]]</div>
+                                                </template>
+                                            </div>
+                                        </td>
+                                    </template>
+                                    <template is="dom-if" if="[[!feature.source]]">
+                                        <td></td>
+                                        <td></td>
+                                    </template>
+                                </tr>
+                                <!--[[_formatClassName(feature.category, feature.group)]] -->
+                                <tr class="detailed-info">
+                                    <td colspan="6" id="[[feature.id]]-evidence-container" class="table-row-evidence"></td>
+                                </tr>
+                            </template>
+                            </tbody>
+                        </template>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6 right-block">
+                <div id="seqViewer"></div>
+            </div>
+        </div>
+    </template>
+    <script>
+        Polymer({
+            is: 'triple-viewer',
+            properties: {
+                isoform: {
+                    type: String
+                },
+                featuresByIsoform: {
+                    type: Array,
+                    value: []
+                },
+                featureList: {
+                    type: Array,
+                    value: [
+                        {
+                            "APIRef": "sequence",
+                            "metadata": {"name": "Sequence"}
+                        }]
+                },
+                featuresForViewer: {
+                    type: Array,
+                    value: []
+                },
+                filterOptions: {
+                    type: Array,
+                    value: {
+                        "none": true
+                    }
+                },
+                activeFiltering: {
+                    type: Array,
+                    value: {}
+                }
+            },
+            ready: function() {
+                this.nx = new Nextprot.Client("neXtprot triple viewer", "Calipho Group");
+                this.nxEntry = this.nx.getEntryName();
+                this.isoName = this.nxEntry+"-1";
+                var self=this;
+                this.nx.getProteinSequence(this.nxEntry).then(
+                        function (data) {
+                            self.sequences = data;
+                            self.getMetadataByView();
+                            Promise.all(self.getFeaturesByView())
+                                    .then(function (oneData) {
+                                        self.getFeaturesByIsoform(oneData);
+                                        self._renderFeatureViewer();
+                                        self.addFiltering();
+                                        self.addFeatures();
+                                        self.toggleFiltering();
+                                        self.fillTable();
+                                        self.tvSelection();
+                                        self.eventTV();
+                                    });
+                        }
+                ).catch(function (err) {
+                            // catch any error that happened so far
+                            console.log("Argh, broken: " + err.message);
+                            console.log("Error at line : " + err.stack);
+                        });
+            },
+            reloadSVG: function(){
+                $("#chart svg").remove();
+                this.ft.clearInstance();
+                this._renderFeatureViewer();
+                this.addFeatures();
+                if ($(".zoomUnit").length) $(".zoomUnit").text("1");
+                d3.selectAll('div.selectedRect').remove();
+
+                this.tvSelection();
+                this.eventTV();
+            },
+            getFeaturesByIsoform: function(isoforms){
+                this.isofroms=isoforms[0];
+                for (var i=1; i<isoforms.length-1;i++) {
+                    var feat = NXUtils.convertMappingsToIsoformMap(isoforms[i],this.metaData[i].name,this.metaData[i].filter, "");
+                    featForViewer = NXViewerUtils.convertNXAnnotations(feat,this.metaData[i]);
+                    this.featuresForViewer.push(featForViewer);
+                    this.featuresByIsoform.push(feat);
+                }
+            },
+            getFeaturesByView: function() {
+                var featuresForViewer = [];
+                for (var feat in this.featureList) {
+                    switch (this.featureList[feat].APIRef) {
+                        case "sequence":
+                            featuresForViewer.push(this.nx.getProteinSequence(this.nxEntry));
+                            break;
+                        case "antibody":
+                            featuresForViewer.push(this.nx.getAntibody(this.nxEntry));
+                            break;
+                        case "isoform-mapping":
+                            featuresForViewer.push(this.nx.getIsoformMapping(this.nxEntry));
+                            break;
+                        default:
+                            featuresForViewer.push(this.nx.getAnnotationsByCategory(this.nxEntry, this.featureList[feat].APIRef));
+                            break;
+                    }
+                }
+                return featuresForViewer;
+            },
+            getMetadataByView: function() {
+                this.metaData = [];
+                for (var i = 0; i < this.featureList.length - 1; i++) {
+                    this.metaData.push(this.featureList[i].metadata);
+                }
+            },
+            addFiltering: function() {
+                for (var i=0;i<this.featuresForViewer.length;i++) {
+                    if (Object.keys(this.featuresForViewer[i]).length !== 0) {
+                        var filter = this.featuresForViewer[i][Object.keys(this.featuresForViewer[i])[0]].filter;
+                        if (filter !== "none" && (!this.activeFiltering[filter.split(" ").join("_")])) {
+                            var filterMin = filter.split(" ").join("_");
+                            this.activeFiltering[filterMin]=filter;
+                            this.filterOptions[filterMin]=true;
+                        }
+                    }
+                }
+            },
+            _renderFeatureViewer: function(){
+                var self=this;
+                this.sequences.forEach(function (o) {
+                    if (o.uniqueName === self.isoName) {
+                        self.currentSeq = o.sequence;
+                        self.ft = new FeatureViewer(self.currentSeq, "#featureViewer", {
+                            showAxis: true,
+                            showSequence: true,
+                            brushActive: true,
+                            toolbar:true,
+                            bubbleHelp:true,
+                            unit:"aa",
+                            zoomMax:10,
+                            toolbarTemplate: 2,
+                            positionWithoutLetter:true,
+                            tooltipColor:"black"
+                        });
+                        self._renderSequenceViewer(o);
+                    }
+                });
+            },
+            _renderSequenceViewer: function(sequenceObject){
+                this.seqView = new Sequence(this.currentSeq, this.isoName);
+                this.seqView.render('#seqViewer', {
+                    'showLineNumbers': true,
+                    'wrapAminoAcids': true,
+                    'charsPerLine': 50,
+                    'search':true,
+                    'toolbar':true,
+                    'header':{
+                        'display':false,
+                        'searchInTitle': false,
+                        'showCpl':false,
+                        'badgeWithUnit':true
+                    }
+                });
+                //Customize Sequence viewer - raw version
+                this.$$(".fasta-link").setAttribute("href","https://old.nextprot.org/db/entry/" + this.isoName.split("-")[0] + "/fasta?isoform=" + this.isoName.slice(3));
+                var seqHeader = document.createElement("div");
+                seqHeader.setAttribute("class", "seqHeader");
+                this.$$("#seqViewer").insertBefore(seqHeader, this.$$(".sequenceBody"));
+                var isoformContainer = document.createElement("div");
+                var seqLenContainer = document.createElement("div");
+                var massContainer = document.createElement("div");
+                var isoElectricPointContainer = document.createElement("div");
+                isoformContainer.innerHTML = "<strong>Isoform :</strong> " + sequenceObject.mainEntityName.name;
+                seqLenContainer.innerHTML = sequenceObject.sequence.length + " aa";
+                massContainer.innerHTML = "<strong>Mass :</strong> " + sequenceObject.massAsString + " Da";
+                isoElectricPointContainer.innerHTML = "<strong>pI :</strong> " + sequenceObject.isoelectricPointAsString;
+                this.$$(".seqHeader").appendChild(isoformContainer);
+                this.$$(".seqHeader").appendChild(seqLenContainer);
+                this.$$(".seqHeader").appendChild(massContainer);
+                this.$$(".seqHeader").appendChild(isoElectricPointContainer);
+
+                this.$$("#seqViewer .inputSearchSeq").setAttribute("placeholder","Search in sequence...");
+                this.$$(".inputSearchSeq").setAttribute("data-toggle","tooltip");
+                this.$$("#seqViewer .inputSearchSeq").setAttribute("data-placement","top");
+                this.$$("#seqViewer .inputSearchSeq").setAttribute("title","Regex supported");
+
+                $('#seqViewer [data-toggle="tooltip"]').tooltip();
+            },
+            addFeatures: function() {
+                for (var i=0;i<this.featuresForViewer.length;i++) {
+                    if (Object.keys(this.featuresForViewer[i]).length !== 0 && this.featuresForViewer[i].hasOwnProperty(this.isoName) && this.filterOptions[this.featuresForViewer[i][this.isoName].filter.split(" ").join("_")] === true) {
+                        var feature = jQuery.extend({}, this.featuresForViewer[i][this.isoName]);
+                        this.ft.addFeature(feature);
+                    }
+                }
+            },
+            fillTable: function() {
+                if ($("#featuresTable").length > 0) {
+                    var number = 0;
+                    var features = {};
+                    var self=this;
+                    for (feat in this.featuresByIsoform) if(this.featuresByIsoform[feat].hasOwnProperty(this.isoName)) {
+                        var group = this.featuresByIsoform[feat][self.isoName][0].group;
+                        var featureList = this.featuresByIsoform[feat][self.isoName];
+                        for (var i in featureList){
+                            var feature = featureList[i];
+                            if(feature.variant){
+                                for (var j in feature.source){
+                                    if(feature.source[j].externalDb) {
+                                        if(feature.source[j].crossRef){
+                                            var crossRef = feature.source[j].crossRef;
+                                            feature.crossRef = '; '+crossRef.dbName+' : <a class="ext-link" href="'+crossRef.url+'">'+crossRef.name+'</a>';
+                                        }
+                                    }
+                                }
+                            }
+                            if(this._isDisulfideBondFeature(feature.category)){
+                                featureList[i].range = feature.start+"&#x256d;&#x256e;"+feature.end;
+                            }else if(this._isSingleResidueFeature(feature.length)){
+                                featureList[i].range = feature.start;
+                            }else{
+                                featureList[i].range = feature.start+"-"+feature.end;
+                            }
+                        }
+                        if(Object.keys(features).indexOf(group)<0) {
+                            features[group] = featureList;
+                        } else {
+                            features[group] = features[group].concat(featureList);
+                        }
+                        number += feature.length;
+                        for (var i=0;i<this.featuresByIsoform[feat][this.isoName].length;i++) if(this.featuresByIsoform[feat][this.isoName][i].source) {
+                            this.featuresByIsoform[feat][this.isoName][i].evidenceSources = this._getUniqueListOfEvidenceSources(this.featuresByIsoform[feat][this.isoName][i].source);
+                        }
+                    }
+                    this.notifyPath("groupedFeatures", features);
+                    this.featuresLength = number;
+                };
+            },
+            toggleFiltering: function() {
+                var self = this;
+                $("#filtering label").mouseover(function(){
+                    var type=$(this).children("input").attr("id");
+                    ft.showFilteredFeature(type, "#795B42", document.location.href);
+                });
+                $("#filtering label").mouseout(function(){
+                    var type=$(this).children("input").attr("id");
+                    ft.hideFilteredFeature(type);
+                });
+                $("#allFilters").click(function(){
+                    if ($("#filtering").hasClass("all-filters")){
+
+                        $("#filtering input[type=checkbox]").prop("checked", false);
+
+                        console.log("has class all-filters");
+                        for(var key in this.filterOptions) {
+                            this.filterOptions[key] = false;
+                        }
+                        $("#filtering").removeClass("all-filters");
+                    }
+                    else {
+
+                        $("#filtering input[type=checkbox]").prop("checked", true);
+
+                        for(var key in this.filterOptions) {
+                            this.filterOptions[key] = true;
+                        }
+                        $("#filtering").addClass("all-filters");
+                    }
+                    self.applyFiltering();
+                    self.reloadSVG();
+
+                });
+                var self=this;
+                $("#filtering input:checkbox").on("change", function() {
+                    console.log("count the number of checkbox not checked : ");
+                    console.log($("#filtering input:checkbox:not(:checked)").length);
+
+                    if (!$("#filtering input:checkbox:not(:checked)").length) {
+                        console.log("all checkbox are checked");
+                        $("#filtering").addClass("all-filters");
+                    }
+                    else if (!$("#filtering input:checkbox:checked").length) {
+                        console.log("all checkbox are unchecked");
+                        $("#filtering").removeClass("all-filters");
+                    }
+                    else {
+                        $("#filtering").removeClass("all-filters");
+                    }
+                    self.filterOptions["none"] = true;
+                    self.applyFiltering();
+                    self.reloadSVG();
+                });
+
+            },
+            applyFiltering: function() {
+                for (var filter in this.activeFiltering) {
+                    if ($("#"+filter).prop("checked")) {
+                        $("."+filter+".general-info").show();
+                        filterOptions[filter] = true;
+                    } else {
+                        $("."+filter).hide();
+                        this.filterOptions[filter] = false;
+                    }
+                }
+                var tableLength = $("#featuresTable .general-info:visible").length;
+                $("#featuresTableTitle .badge").text(tableLength);
+            },
+            test: function(){
+                $(".tableHighlight").removeClass("tableHighlight");
+                $(this).parent().parent().addClass("tableHighlight");
+                var currentId = $(this).parent().parent().attr("id");
+                var position = currentId.split("_").slice(1).map(Number);
+                if (position.length === 1) position.push(position[0]);
+                var svgId = "#" + "f" + currentId;
+
+                position[0]-=1;
+                self.seqView.selection(position[0],position[1],"#C50063");
+                self.ft.addRectSelection(svgId);
+
+                self.scrollAuto(".stringSelected", ".scroller",200);
+            },
+            tvSelection: function() {
+                console.log('tvsele')
+                var self = this;
+                $(".featPosition").click(function() {
+                    console.log("fp")
+                    $(".tableHighlight").removeClass("tableHighlight");
+                    $(this).parent().parent().addClass("tableHighlight");
+                    var currentId = $(this).parent().parent().attr("id");
+                    var position = currentId.split("_").slice(1).map(Number);
+                    if (position.length === 1) position.push(position[0]);
+                    var svgId = "#" + "f" + currentId;
+
+                    position[0]-=1;
+                    self.seqView.selection(position[0],position[1],"#C50063");
+                    self.ft.addRectSelection(svgId);
+
+                    self.scrollAuto(".stringSelected", ".scroller",200);
+                });
+            },
+            eventTV: function() {
+                var self=this;
+                this.ft.onFeatureSelected(function(d){
+                    // update isoform selector
+                    // this works well
+                    self.fvSelection(d.detail);
+                });
+            },
+            onFeatureSelected: function() {
+                var self = this;
+                this.ft.onFeatureSelected(function(d){
+                    self.fvSelection(d.detail);
+                });
+                this.tvSelection();
+                //console.log($(".featPosition"));
+                //$(".featPosition").click(function() {
+                //console.log('on fs loop 2');
+                /*var currentId = $(this).parent().parent().attr("id");
+                 var idParsed = currentId.split("_").slice(1).map(Number);
+                 var position = {
+                 start: idParsed[0],
+                 end: idParsed[1]
+                 }*/
+                //});
+            },
+            fvSelection: function(d) {
+                console.log(d);
+                this.seqView.selection(d.start - 1,d.end,"#C50063");
+                var featSelectedID = "#" + d.id;
+                $(".tableHighlight").removeClass("tableHighlight");
+                $(featSelectedID).addClass("tableHighlight");
+
+                this.scrollAuto(featSelectedID, "#featTableScroller",70);
+                this.scrollAuto(".stringSelected", ".scroller",200);
+            },
+            scrollAuto: function(elem, container, shiftTop) {
+                var ElementTop = $(elem).position().top-shiftTop;
+                var scrollPosition = $(container).scrollTop();
+                var scrollingLength = ElementTop + scrollPosition;
+                $(container).animate({scrollTop: scrollingLength}, 1000);
+            },
+            _getUniqueListOfEvidenceSources: function(evidenceList) {
+                var evidenceSourceList = [];
+                evidenceList.forEach(function(evidence){
+                    if(evidenceSourceList.indexOf(evidence.assignedBy) < 0) {
+                        evidenceSourceList.push(evidence.assignedBy);
+                    }
+                });
+                return evidenceSourceList.sort(NXUtils.sortByAlphabet);
+            },
+            _toArray: function(obj) {
+                if (typeof obj === 'object') {
+                    return Object.keys(obj).map(function(key) {
+                        return {
+                            name: key,
+                            value: obj[key]
+                        };
+                    });
+                }
+                return null;
+            },
+            _toggle: function(mouseEvent){
+                var srcElementId = mouseEvent.srcElement.id || mouseEvent.srcElement.parentNode.id;
+                this.$$("#"+srcElementId.replace('button','container')).toggle();
+            },
+            _isDisulfideBondFeature: function(featureCategory) {
+                return featureCategory === "Disulfide bond";
+            },
+            _isSingleResidueFeature: function(residueLength) {
+                return residueLength === 1;
+            },
+            _formatClassName: function(name, group) {
+                return name.replace(' ','')+" "+group.split(" ").join("_");
+            },
+            _increment: function(num) {
+                return num+=1;
+            },
+            _showEvidences: function(e){
+                var feature = JSON.parse(e.target.dataset.args);
+                var container = this.$$("#"+feature.id+"-evidence-container");
+                if(container.childElementCount===0){
+                    for (i in feature.source){
+                        var evidence = feature.source[i];
+                        var evidenceItem = document.createElement("evidence-item");
+                        evidenceItem.setAttribute("index", new Number(i+1));
+                        evidenceItem.data=evidence;
+                        container.appendChild(evidenceItem);
+                        this.updateStyles();
+                    }
+                } else if (container.hidden) {
+                    container.hidden = false;
+                } else {
+                    container.hidden = true;
+                }
+            }
+        });
+    </script>
+</dom-module>
