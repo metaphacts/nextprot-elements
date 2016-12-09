@@ -39,7 +39,7 @@ Exteranl links section present in function, medical, expression, interactions, s
                       <label class="btn btn-xs prefix-label">{{xref.prefix}}</label>
                     </template>
                     <a class="btn btn-xs selectable ext-link" href="{{xref.url}}" target="_blank">{{xref.accession}}</a>
-                    <template is="dom-if" if="{{xref.sufix}}">
+                    <template is="dom-if" if="{{xref.suffix}}">
                       <label class="suffix-label">{{xref.suffix}}</label>
                     </template>
                   </div>
@@ -49,7 +49,7 @@ Exteranl links section present in function, medical, expression, interactions, s
                         <label class="btn btn-xs prefix-label">{{xref.prefix}}</label>
                       </template>
                       <a class="btn btn-xs selectable ext-link" href="{{xref.url}}" target="_blank">{{xref.accession}}</a>
-                      <template is="dom-if" if="{{xref.sufix}}">
+                      <template is="dom-if" if="{{xref.suffix}}">
                         <label class="suffix-label">{{xref.suffix}}</label>
                       </template>
                     </div>
@@ -144,7 +144,21 @@ Exteranl links section present in function, medical, expression, interactions, s
       _filterExceptions: function(typeList) {
         var newTypeList = [];
         for (elem in typeList){
-          if (typeList[elem].databaseName === "Ensembl"){
+          if (typeList[elem].databaseName === "IntAct"
+          || typeList[elem].databaseName === "BioGrid"){
+            if(typeList[elem].properties.length>0){
+              newTypeList.push({
+                name: typeList[elem].databaseName,
+                xrefs : [{
+                  accession: typeList[elem].accession,
+                  url : typeList[elem].resolvedUrl,
+                  prefix: "",
+                  suffix : typeList[elem].properties[0].name+": "+typeList[elem].properties[0].value
+                }]
+              })
+            }
+          }
+          else if (typeList[elem].databaseName === "Ensembl"){
             if (typeList[elem].accession.startsWith("ENST")){
               if (typeList[elem].properties) {
                 var ensembl = {
