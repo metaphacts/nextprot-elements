@@ -1,6 +1,17 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../iron-collapse/iron-collapse.html">
 <link rel="import" href="../paper-spinner/paper-spinner-lite.html">
+<script>
+  //Load JQuery if necessary
+  if(typeof jQuery === "undefined"){
+    (function(){
+      var newscript = document.createElement('script');
+      newscript.src = '../../jquery/dist/jquery.min.js';
+      newscript.src = 'https://code.jquery.com/jquery-2.2.4.min.js';
+      (document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(newscript);
+    })();
+  }
+</script>
 <script src="../nextprot-js/src/nextprot-core.js"></script>
 <link rel="import" href="nextprot-elements-shared-styles.html">
 

@@ -1,6 +1,16 @@
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-spinner/paper-spinner-lite.html">
 <link rel="import" href="nextprot-elements-shared-styles.html">
+<script>
+  //Load JQuery if necessary
+  if(typeof jQuery === "undefined"){
+    (function(){
+      var newscript = document.createElement('script');
+      newscript.src = '../../jquery/dist/jquery.min.js';
+      (document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(newscript);
+    })();
+  }
+</script>
 <script src="../nextprot-js/src/nextprot-core.js"></script>
 <!--
 `xrefs-section`
