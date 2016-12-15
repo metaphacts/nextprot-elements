@@ -325,6 +325,7 @@ Annotation section used in function, medical, and expression views.
                 if (b.value.selfInteraction) return 1;
                 if (a.value.geneName=="-") return 1;
                 if (b.value.geneName=="-") return -1;
+                if (a.value.geneName)
                 return a.value.geneName.toLowerCase() > b.value.geneName.toLowerCase() ? 1 : -1;
 
             },
