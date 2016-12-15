@@ -313,12 +313,12 @@ Widget visualizing isoform sequence coverage, allows switching between isoforms.
                         width = iFrameWidth - margin.left - margin.right - 17,
                         height = 200 - margin.top - margin.bottom;
                 var coverageLength = 33000;
-                var scaling = d3.scaleLinear()
+                var scaling = d3.scale.linear()
                         .domain([min, max])
                         .range([0, width]);
 
-                var line = d3.line()
-                        .curve(d3.curveLinear)
+                var line = d3.svg.line()
+                        .interpolate("curve-linear")
                         .x(function (d) {
                             return scaling(d.x);
                         })
