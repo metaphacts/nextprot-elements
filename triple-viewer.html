@@ -21,7 +21,7 @@
 <!--
 `triple-viewer`
 Complex element joining nextprot feature viewer, feature table and sequence viewer
-@demo demo/index.html
+@demo demo/triple-viewer-demo.html
 -->
 <dom-module id="triple-viewer">
     <link rel="stylesheet" type="text/css" href="../feature-viewer/dist/feature-viewer.min.css">
@@ -252,7 +252,7 @@ Complex element joining nextprot feature viewer, feature table and sequence view
                                 <!--[[_formatClassName(feature.category, feature.group)]] -->
                                 <tr id=[[feature.id]] class="general-info">
                                     <td>[[feature.category]]</td>
-                                    <td class="text-align-right"><a class="featPosition" on-tap="test">
+                                    <td class="text-align-right"><a class="featPosition" on-tap="tvSelection">
                                         <span inner-h-t-m-l="[[feature.range]]"></span>
                                     </a></td>
                                     <td class="text-align-right">[[feature.length]]</td>
@@ -600,25 +600,9 @@ Complex element joining nextprot feature viewer, feature table and sequence view
                 var tableLength = $("#featuresTable .general-info:visible").length;
                 $("#featuresTableTitle .badge").text(tableLength);
             },
-            test: function(){
-                $(".tableHighlight").removeClass("tableHighlight");
-                $(this).parent().parent().addClass("tableHighlight");
-                var currentId = $(this).parent().parent().attr("id");
-                var position = currentId.split("_").slice(1).map(Number);
-                if (position.length === 1) position.push(position[0]);
-                var svgId = "#" + "f" + currentId;
-
-                position[0]-=1;
-                self.seqView.selection(position[0],position[1],"#C50063");
-                self.ft.addRectSelection(svgId);
-
-                self.scrollAuto(".stringSelected", ".scroller",200);
-            },
             tvSelection: function() {
-                console.log('tvsele')
                 var self = this;
                 $(".featPosition").click(function() {
-                    console.log("fp")
                     $(".tableHighlight").removeClass("tableHighlight");
                     $(this).parent().parent().addClass("tableHighlight");
                     var currentId = $(this).parent().parent().attr("id");
@@ -635,9 +619,8 @@ Complex element joining nextprot feature viewer, feature table and sequence view
             },
             eventTV: function() {
                 var self=this;
-                this.ft.onFeatureSelected(function(d){
+                self.ft.onFeatureSelected(function(d){
                     // update isoform selector
-                    // this works well
                     self.fvSelection(d.detail);
                 });
             },
@@ -647,19 +630,8 @@ Complex element joining nextprot feature viewer, feature table and sequence view
                     self.fvSelection(d.detail);
                 });
                 this.tvSelection();
-                //console.log($(".featPosition"));
-                //$(".featPosition").click(function() {
-                //console.log('on fs loop 2');
-                /*var currentId = $(this).parent().parent().attr("id");
-                 var idParsed = currentId.split("_").slice(1).map(Number);
-                 var position = {
-                 start: idParsed[0],
-                 end: idParsed[1]
-                 }*/
-                //});
             },
             fvSelection: function(d) {
-                console.log(d);
                 this.seqView.selection(d.start - 1,d.end,"#C50063");
                 var featSelectedID = "#" + d.id;
                 $(".tableHighlight").removeClass("tableHighlight");
