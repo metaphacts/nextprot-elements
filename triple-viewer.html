@@ -2,8 +2,20 @@
 <link rel="import" href="evidence-item.html">
 <link rel="import" href="quality-label.html">
 <link rel="import" href="nextprot-elements-shared-styles.html">
-<script src="../feature-viewer/dist/feature-viewer.bundle.js"></script>
+<script>
+    //Load JQuery if necessary
+    if(typeof jQuery === "undefined"){
+        (function(){
+            var newscript = document.createElement('script');
+            newscript.src = '../../jquery/dist/jquery.min.js';
+            document.getElementsByTagName('head')[0].appendChild(newscript);
+        })();
+    }
+</script>
+<script src="../feature-viewer/src/feature-viewer.js"></script>
 <script src="../sequence-viewer/dist/sequence-viewer.min.js"></script>
+<script src="../d3/d3.min.js"></script>
+<script src="../bootstrap/js/tooltip.js"></script>
 <script src="../nextprot/src/nextprot-core.js"></script>
 <script src="../nextprot/src/nextprot-utils.js"></script>
 <!--
@@ -24,6 +36,69 @@ Complex element joining nextprot feature viewer, feature table and sequence view
             }
             td[hidden] {
                 display: none;
+            }
+            .filter-block>div{
+                box-shadow: 0px 2px 3px -1px rgba(0,0,0,0.15);
+                margin-top:15px;
+                display: inline-block;
+            }
+            .filter-heading{
+                display:inline-block;
+                background:#F8F8F8;
+                padding:0px 15px;
+                height:100%;
+                border-color:#F8F8F8;
+                border:1px #ddd solid;
+                vertical-align: middle;
+                border-top-left-radius: 2px;
+                border-bottom-left-radius: 2px;
+            }
+            .filter-heading .fa{
+                margin-right:3px;
+            }
+            .filter-heading h5{
+                display: inline-block;
+                color: #777;
+                padding: 0px;
+                height: 30px;
+                margin: 0px;
+                line-height: 30px;
+            }
+            .filter-body{
+                display:inline-block;
+                background:#F8F8F8;
+                padding:0px 15px 0px 0px;
+                height:32px;
+                border-color:#F8F8F8;
+                border:1px #ddd solid;
+                margin-left:-1px;
+                vertical-align: middle;
+                border-top-right-radius: 2px;
+                border-bottom-right-radius: 2px;
+            }
+            #filtering{
+                margin-right:10px;
+                font-size:12px;
+            }
+            #allFilters{
+                border:0px;
+                height:30px;
+                border-right:1px solid #ddd;
+                border-radius:0px;
+                color: #337ab7;
+                text-decoration: underline;
+            }
+            .filter-box{
+                position: relative;
+                display: inline-block;
+                padding-left: 10px;
+                margin-bottom: 0;
+                font-weight: 400;
+                vertical-align: middle;
+                cursor: pointer;
+            }
+            .filter-box input{
+                margin-right:5px;
             }
             #featuresTable {
                 font-size:11px;
@@ -148,9 +223,8 @@ Complex element joining nextprot feature viewer, feature table and sequence view
                         <div id="filtering" class="all-filters">
                             <button class="btn btn-default btn-sm" id="allFilters">All/None</button>
                             <template is="dom-repeat" items="{{_toArray(activeFiltering)}}" as="filter">
-                                {{filter}}
-                                <label class="filter-box">
-                                    <input type="checkbox" id={{filter.name}} value="option1" checked>{{filter.value}}
+                                <label class="filter-box">{{filter.value}}
+                                    <input type="checkbox" id={{filter.name}} value="option1" checked>
                                 </label>
                             </template>
                         </div>
@@ -225,6 +299,10 @@ Complex element joining nextprot feature viewer, feature table and sequence view
         Polymer({
             is: 'triple-viewer',
             properties: {
+                nxConfig: {
+                    type: Object,
+                    value: {}
+                },
                 isoform: {
                     type: String
                 },
@@ -257,30 +335,30 @@ Complex element joining nextprot feature viewer, feature table and sequence view
             },
             ready: function() {
                 this.nx = new Nextprot.Client("neXtprot triple viewer", "Calipho Group");
-                this.nxEntry = this.nx.getEntryName();
+                this.nxEntry = this.nxConfig.entry || this.nx.getEntryName();
                 this.isoName = this.nxEntry+"-1";
                 var self=this;
                 this.nx.getProteinSequence(this.nxEntry).then(
-                        function (data) {
-                            self.sequences = data;
-                            self.getMetadataByView();
-                            Promise.all(self.getFeaturesByView())
-                                    .then(function (oneData) {
-                                        self.getFeaturesByIsoform(oneData);
-                                        self._renderFeatureViewer();
-                                        self.addFiltering();
-                                        self.addFeatures();
-                                        self.toggleFiltering();
-                                        self.fillTable();
-                                        self.tvSelection();
-                                        self.eventTV();
-                                    });
+                    function (data) {
+                        self.sequences = data;
+                        self.getMetadataByView();
+                        Promise.all(self.getFeaturesByView())
+                            .then(function (oneData) {
+                                self.getFeaturesByIsoform(oneData);
+                                self._renderFeatureViewer();
+                                self.addFiltering();
+                                self.addFeatures();
+                                self.toggleFiltering();
+                                self.fillTable();
+                                self.tvSelection();
+                                self.eventTV();
+                            });
                         }
                 ).catch(function (err) {
-                            // catch any error that happened so far
-                            console.log("Argh, broken: " + err.message);
-                            console.log("Error at line : " + err.stack);
-                        });
+                    // catch any error that happened so far
+                    console.log("Argh, broken: " + err.message);
+                    console.log("Error at line : " + err.stack);
+                });
             },
             reloadSVG: function(){
                 $("#chart svg").remove();
@@ -329,16 +407,18 @@ Complex element joining nextprot feature viewer, feature table and sequence view
                 }
             },
             addFiltering: function() {
+                var activeFiltering = {};
                 for (var i=0;i<this.featuresForViewer.length;i++) {
                     if (Object.keys(this.featuresForViewer[i]).length !== 0) {
                         var filter = this.featuresForViewer[i][Object.keys(this.featuresForViewer[i])[0]].filter;
-                        if (filter !== "none" && (!this.activeFiltering[filter.split(" ").join("_")])) {
+                        if (filter !== "none" && (!activeFiltering[filter.split(" ").join("_")])) {
                             var filterMin = filter.split(" ").join("_");
-                            this.activeFiltering[filterMin]=filter;
+                            activeFiltering[filterMin]=filter;
                             this.filterOptions[filterMin]=true;
                         }
                     }
                 }
+                this.activeFiltering = activeFiltering;
             },
             _renderFeatureViewer: function(){
                 var self=this;
