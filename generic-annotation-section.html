@@ -1,22 +1,12 @@
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../iron-icon/iron-icon.html">
-<link rel="import" href="../iron-collapse/iron-collapse.html">
-<link rel="import" href="../paper-spinner/paper-spinner-lite.html">
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="bower_components/iron-collapse/iron-collapse.html">
+<link rel="import" href="bower_components/paper-spinner/paper-spinner-lite.html">
 <link rel="import" href="evidence-item.html">
 <link rel="import" href="quality-label.html">
 <link rel="import" href="nextprot-elements-shared-styles.html">
-<script>
-    //Load JQuery if necessary
-    if(typeof jQuery === "undefined"){
-        (function(){
-            var newscript = document.createElement('script');
-            newscript.type = 'text/javascript';
-            newscript.src = '../../jquery/dist/jquery.min.js';
-            (document.getElementsByTagName('head')[0]||document.getElementsByTagName('body')[0]).appendChild(newscript);
-        })();
-    }
-</script>
-<script src="../nextprot-js/src/nextprot-core.js"></script>
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/nextprot-js/src/nextprot-core.js"></script>
 <!--
 `generic-annotation-section`
 Annotation section used in function, medical, and expression views.

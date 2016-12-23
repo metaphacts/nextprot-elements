@@ -1,30 +1,21 @@
-<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="bower_components/polymer/polymer.html">
 <link rel="import" href="evidence-item.html">
 <link rel="import" href="quality-label.html">
 <link rel="import" href="nextprot-elements-shared-styles.html">
-<script>
-    //Load JQuery if necessary
-    if(typeof jQuery === "undefined"){
-        (function(){
-            var newscript = document.createElement('script');
-            newscript.src = '../../jquery/dist/jquery.min.js';
-            document.getElementsByTagName('head')[0].appendChild(newscript);
-        })();
-    }
-</script>
-<script src="../feature-viewer/src/feature-viewer.js"></script>
-<script src="../sequence-viewer/dist/sequence-viewer.min.js"></script>
-<script src="../d3/d3.min.js"></script>
-<script src="../bootstrap/js/tooltip.js"></script>
-<script src="../nextprot/src/nextprot-core.js"></script>
-<script src="../nextprot/src/nextprot-utils.js"></script>
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script src="bower_components/feature-viewer/src/feature-viewer.js"></script>
+<script src="bower_components/sequence-viewer/dist/sequence-viewer.min.js"></script>
+<script src="bower_components/d3/d3.min.js"></script>
+<script src="bower_components/bootstrap/js/tooltip.js"></script>
+<script src="bower_components/nextprot/src/nextprot-core.js"></script>
+<script src="bower_components/nextprot/src/nextprot-utils.js"></script>
 <!--
 `triple-viewer`
 Complex element joining nextprot feature viewer, feature table and sequence viewer
 @demo demo/triple-viewer-demo.html
 -->
 <dom-module id="triple-viewer">
-    <link rel="stylesheet" type="text/css" href="../feature-viewer/dist/feature-viewer.min.css">
+    <link rel="stylesheet" type="text/css" href="bower_components/feature-viewer/dist/feature-viewer.min.css">
     <template>
         <style is="custom-style" include="nextprot-elements-shared-styles">
             :host {
